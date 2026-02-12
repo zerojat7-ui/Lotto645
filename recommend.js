@@ -13,8 +13,8 @@ var loadedRecData = [];
 // ────────────────────────────
 var CUBE_LAMBDA      = 0.18;
 var CUBE_LR          = 0.05;
-var CUBE_EVOLVE_TIME = 100;    // ms (모바일 배려, 원본 4000)
-var CUBE_LOOP_MIN    = 10000;  // 원본 80000
+var CUBE_EVOLVE_TIME = 50;    // ms (모바일 배려, 원본 4000)
+var CUBE_LOOP_MIN    = 5000;  // 원본 80000
 
 function cubeBase(x) { return Math.sin(x) + Math.cos(x / 2); }
 function cubeSigmoid(x) { return 1 / (1 + Math.exp(-x)); }
