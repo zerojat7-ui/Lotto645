@@ -1,0 +1,90 @@
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height:100vh; padding:10px; }
+.container { max-width:500px; margin:0 auto; }
+.header { background:white; padding:20px; border-radius:15px; margin-bottom:15px; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.2); }
+.header h1 { font-size:24px; color:#667eea; margin-bottom:5px; }
+.header p  { font-size:13px; color:#666; }
+.tabs { display:flex; gap:6px; margin-bottom:15px; }
+.tab { flex:1; padding:11px 4px; background:rgba(255,255,255,0.3); border:none; border-radius:10px; color:white; font-weight:bold; font-size:12px; cursor:pointer; transition:all 0.3s; }
+.tab.active { background:white; color:#667eea; box-shadow:0 2px 10px rgba(0,0,0,0.2); }
+.tab:disabled { opacity:0.4; cursor:not-allowed; }
+.content { background:white; border-radius:15px; padding:20px; box-shadow:0 4px 15px rgba(0,0,0,0.2); margin-bottom:15px; }
+.btn { width:100%; padding:14px; border:none; border-radius:10px; font-size:15px; font-weight:bold; cursor:pointer; transition:all 0.2s; margin-bottom:10px; }
+.btn:active { transform:scale(0.98); }
+.btn-primary   { background:#667eea; color:white; }
+.btn-secondary { background:#00C49F; color:white; }
+.btn-red       { background:#ff6b6b; color:white; }
+.btn:disabled  { background:#ccc; cursor:not-allowed; }
+.alert { padding:12px; border-radius:8px; margin-bottom:12px; font-size:13px; }
+.alert-success { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+.alert-info    { background:#d1ecf1; color:#0c5460; border:1px solid #bee5eb; }
+.alert-warning { background:#fff3cd; color:#856404; border:1px solid #ffeaa7; }
+.hidden { display:none !important; }
+.section-title { font-size:16px; font-weight:bold; color:#333; margin-bottom:15px; padding-bottom:8px; border-bottom:2px solid #667eea; }
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px; }
+.stat-card  { background:linear-gradient(135deg,#667eea,#764ba2); padding:15px; border-radius:10px; text-align:center; color:white; }
+.stat-label { font-size:12px; opacity:0.9; margin-bottom:5px; }
+.stat-value { font-size:26px; font-weight:bold; }
+.number-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin:15px 0; }
+.number-item { aspect-ratio:1; background:#f8f9fa; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px; border:2px solid #e0e0e0; cursor:pointer; }
+.number-item.hot  { background:linear-gradient(135deg,#ff6b6b,#ee5a6f); border-color:#c92a2a; }
+.number-item.cold { background:linear-gradient(135deg,#4dabf7,#339af0); border-color:#1971c2; }
+.number-value { font-size:17px; font-weight:bold; color:#667eea; }
+.number-item.hot .number-value,.number-item.cold .number-value { color:white; }
+.number-count { font-size:10px; color:#666; margin-top:2px; }
+.number-item.hot .number-count,.number-item.cold .number-count { color:rgba(255,255,255,0.9); }
+.analysis-section { margin:16px 0; padding:14px; background:#f8f9fa; border-radius:10px; }
+.analysis-title   { font-size:15px; font-weight:bold; color:#333; margin-bottom:10px; }
+.analysis-item    { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid #dee2e6; }
+.analysis-item:last-child { border-bottom:none; }
+.analysis-label { font-size:13px; color:#666; }
+.analysis-value { font-size:13px; font-weight:bold; color:#667eea; }
+.bar-chart { margin:15px 0; }
+.bar-item  { display:flex; align-items:center; margin-bottom:7px; font-size:12px; }
+.bar-label { width:28px; text-align:right; margin-right:8px; font-weight:bold; color:#667eea; }
+.bar-fill-container { flex:1; height:20px; background:#e9ecef; border-radius:4px; overflow:hidden; position:relative; }
+.bar-fill  { height:100%; background:linear-gradient(90deg,#667eea,#764ba2); border-radius:4px; }
+.bar-count { position:absolute; right:5px; top:50%; transform:translateY(-50%); color:white; font-weight:bold; font-size:11px; }
+.lotto-ball { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:17px; font-weight:bold; box-shadow:0 3px 8px rgba(0,0,0,0.28); }
+.lotto-ball.odd  { background:linear-gradient(135deg,#FF8042,#FF6B35); }
+.lotto-ball.even { background:linear-gradient(135deg,#00C49F,#00A884); }
+.recommendation { background:linear-gradient(135deg,#f8f9fa,#e9ecef); border:2px solid #667eea; border-radius:12px; padding:15px; margin-bottom:14px; }
+.rec-header  { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.rec-title   { font-size:15px; font-weight:bold; color:#667eea; }
+.rec-numbers { display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin-bottom:8px; }
+.rec-info    { display:flex; justify-content:space-around; font-size:13px; color:#666; padding-top:8px; border-top:1px solid #ddd; }
+.ls-bar { background:#f0f4ff; border:1px solid #c5d0f5; border-radius:10px; padding:12px; margin-bottom:12px; }
+.ls-bar-title { font-size:13px; font-weight:bold; color:#667eea; margin-bottom:6px; }
+#lsStatus { font-size:12px; color:#888; margin-bottom:8px; min-height:16px; }
+.ls-btns { display:flex; gap:8px; }
+.ls-btns button { padding:8px 12px; border:none; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer; }
+.ls-load { flex:1; background:#667eea; color:white; }
+.ls-del  { background:#ff6b6b; color:white; }
+.num-inputs { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
+.num-btn { padding:14px 8px; border:2px solid #667eea; border-radius:10px; background:white; color:#667eea; font-size:16px; font-weight:bold; cursor:pointer; transition:all 0.2s; text-align:center; width:100%; }
+.num-btn.filled { background:#667eea; color:white; }
+.dialog-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); display:flex; align-items:flex-end; z-index:999; }
+.dialog-box { background:white; width:100%; border-radius:20px 20px 0 0; padding:20px 14px 36px; max-height:72vh; overflow-y:auto; }
+.dialog-title { font-size:16px; font-weight:bold; color:#333; text-align:center; margin-bottom:14px; }
+.dialog-grid  { display:grid; grid-template-columns:repeat(7,1fr); gap:7px; margin-bottom:16px; }
+.d-num { aspect-ratio:1; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold; border:2px solid #e0e0e0; background:#f8f9fa; color:#333; cursor:pointer; transition:all 0.15s; -webkit-tap-highlight-color:transparent; }
+.d-num:active { transform:scale(0.88); }
+.d-num.d-sel  { background:#667eea; color:white; border-color:#667eea; }
+.d-num.d-used { opacity:0.2; pointer-events:none; }
+.dialog-actions { display:flex; gap:10px; }
+.dialog-actions button { flex:1; padding:14px; border:none; border-radius:10px; font-size:15px; font-weight:bold; cursor:pointer; }
+.d-cancel  { background:#f0f0f0; color:#666; }
+.d-confirm { background:#667eea; color:white; }
+.lotto-ticket { background:white; border:2px solid #333; border-radius:8px; padding:10px 8px; margin-bottom:14px; }
+.ticket-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.ticket-label  { background:#c00; color:white; font-weight:bold; font-size:13px; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.ticket-grid   { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.ticket-num { aspect-ratio:1; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; border:1px solid #ccc; background:#f9f9f9; color:#333; cursor:pointer; transition:all 0.15s; -webkit-tap-highlight-color:transparent; user-select:none; }
+.ticket-num:active     { transform:scale(0.88); }
+.ticket-num.sel-manual { background:#c00;    color:white; border-color:#c00; }
+.ticket-num.sel-auto   { background:#667eea; color:white; border-color:#667eea; }
+.ticket-footer { display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+.result-ball { width:33px; height:33px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold; color:white; box-shadow:0 2px 5px rgba(0,0,0,0.22); }
+.ball-m { background:linear-gradient(135deg,#c00,#ff4444); }
+.ball-a { background:linear-gradient(135deg,#667eea,#764ba2); }
+#advancedMonitor { background:#1a1a2e; border-radius:12px; padding:15px; margin-bottom:15px; color:white; }

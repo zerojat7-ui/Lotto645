@@ -3,1730 +3,231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>로또 6/45 분석 & 추천</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 10px;
-        }
-
-        .container { max-width: 500px; margin: 0 auto; }
-
-        .header {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 15px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        .header h1 { font-size: 24px; color: #667eea; margin-bottom: 5px; }
-        .header p { font-size: 13px; color: #666; }
-
-        .tabs { display: flex; gap: 8px; margin-bottom: 15px; }
-
-        .tab {
-            flex: 1; padding: 12px; background: rgba(255,255,255,0.3);
-            border: none; border-radius: 10px; color: white;
-            font-weight: bold; font-size: 13px; cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .tab.active { background: white; color: #667eea; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-        .tab:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .content {
-            background: white; border-radius: 15px; padding: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-bottom: 15px;
-        }
-
-        .btn {
-            width: 100%; padding: 15px; border: none; border-radius: 10px;
-            font-size: 16px; font-weight: bold; cursor: pointer;
-            transition: all 0.3s; margin-bottom: 10px;
-        }
-
-        .btn-primary { background: #667eea; color: white; }
-        .btn-secondary { background: #00C49F; color: white; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
-        .btn:active { transform: scale(0.98); }
-
-        .file-input-wrapper { position: relative; overflow: hidden; width: 100%; margin-bottom: 10px; }
-        .file-input-wrapper input[type=file] { position: absolute; left: -9999px; }
-        .file-input-label {
-            display: block; padding: 15px; background: #8884D8; color: white;
-            border-radius: 10px; text-align: center; cursor: pointer;
-            font-weight: bold; transition: all 0.3s;
-        }
-
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 15px; border-radius: 10px; text-align: center; color: white;
-        }
-        .stat-label { font-size: 12px; opacity: 0.9; margin-bottom: 5px; }
-        .stat-value { font-size: 28px; font-weight: bold; }
-
-        .number-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 15px 0; }
-        .number-item {
-            aspect-ratio: 1; background: #f8f9fa; border-radius: 8px;
-            display: flex; flex-direction: column; align-items: center;
-            justify-content: center; padding: 5px; border: 2px solid #e0e0e0;
-        }
-        .number-item.hot { 
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); 
-            border-color: #c92a2a;
-        }
-        .number-item.cold { 
-            background: linear-gradient(135deg, #4dabf7 0%, #339af0 100%); 
-            border-color: #1971c2;
-        }
-        .number-value { font-size: 18px; font-weight: bold; color: #667eea; }
-        .number-item.hot .number-value, .number-item.cold .number-value { color: white; }
-        .number-count { font-size: 10px; color: #666; margin-top: 2px; }
-        .number-item.hot .number-count, .number-item.cold .number-count { color: rgba(255,255,255,0.9); }
-
-        .analysis-section { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px; }
-        .analysis-title { font-size: 16px; font-weight: bold; color: #333; margin-bottom: 10px; }
-        .analysis-item { 
-            display: flex; justify-content: space-between; 
-            padding: 8px 0; border-bottom: 1px solid #dee2e6; 
-        }
-        .analysis-item:last-child { border-bottom: none; }
-        .analysis-label { font-size: 14px; color: #666; }
-        .analysis-value { font-size: 14px; font-weight: bold; color: #667eea; }
-
-        .bar-chart { margin: 15px 0; }
-        .bar-item { 
-            display: flex; align-items: center; margin-bottom: 8px; 
-            font-size: 12px;
-        }
-        .bar-label { 
-            width: 30px; text-align: right; margin-right: 8px; 
-            font-weight: bold; color: #667eea;
-        }
-        .bar-fill-container { 
-            flex: 1; height: 20px; background: #e9ecef; 
-            border-radius: 4px; overflow: hidden; position: relative;
-        }
-        .bar-fill { 
-            height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); 
-            transition: width 0.3s;
-        }
-        .bar-count { 
-            position: absolute; right: 5px; top: 50%; 
-            transform: translateY(-50%); 
-            color: white; font-weight: bold; font-size: 11px;
-        }
-
-        .recommendation {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border: 2px solid #667eea; border-radius: 12px; padding: 15px; margin-bottom: 15px;
-        }
-        .rec-header { 
-            display: flex; justify-content: space-between; 
-            align-items: center; margin-bottom: 12px; 
-        }
-        .rec-title { font-size: 16px; font-weight: bold; color: #667eea; }
-        .rec-numbers { 
-            display: flex; gap: 8px; margin-bottom: 10px; 
-            flex-wrap: wrap; justify-content: center; 
-        }
-        .lotto-ball {
-            width: 45px; height: 45px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 18px; font-weight: bold;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-        }
-        .lotto-ball.odd { background: linear-gradient(135deg, #FF8042 0%, #FF6B35 100%); }
-        .lotto-ball.even { background: linear-gradient(135deg, #00C49F 0%, #00A884 100%); }
-        .rec-info {
-            display: flex; justify-content: space-around; font-size: 13px; color: #666;
-            margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;
-        }
-
-        .alert {
-            padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px;
-        }
-        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-        .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
-
-        .section-title {
-            font-size: 16px; font-weight: bold; color: #333;
-            margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #667eea;
-        }
-
-
-        /* ── 반자동 탭 스타일 ── */
-        .lotto-ticket {
-            background: #fff;
-            border: 2px solid #333;
-            border-radius: 8px;
-            padding: 10px 8px;
-            margin-bottom: 14px;
-            position: relative;
-        }
-        .ticket-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-        .ticket-label {
-            background: #c00;
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-            width: 28px; height: 28px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .ticket-price {
-            font-size: 13px;
-            font-weight: bold;
-            color: #333;
-        }
-        .ticket-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-        }
-        .ticket-num {
-            aspect-ratio: 1;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            border: 1px solid #ccc;
-            background: #f9f9f9;
-            color: #333;
-            transition: all 0.15s;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-        }
-        .ticket-num:active { transform: scale(0.9); }
-        .ticket-num.selected-manual {
-            background: #c00;
-            color: white;
-            border-color: #c00;
-        }
-        .ticket-num.selected-auto {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-        .ticket-num.disabled-num {
-            opacity: 0.25;
-            cursor: not-allowed;
-        }
-        .ticket-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 8px;
-        }
-        .auto-badge {
-            font-size: 11px;
-            background: #667eea;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-        .manual-badge {
-            font-size: 11px;
-            background: #c00;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-        .ticket-result {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
-        .result-ball {
-            width: 34px; height: 34px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; font-weight: bold;
-            color: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.25);
-        }
-        .ball-manual { background: linear-gradient(135deg, #c00, #ff4444); }
-        .ball-auto   { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .hidden { display: none !important; }
-    </style>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>로또 6/45 분석</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
-<!-- Html 본문 --->
-
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎰 로또 6/45 분석</h1>
-            <p>고급 패턴 분석 & AI 추천</p>
-        </div>
+<div class="container">
 
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab('import')">📥 데이터</button>
-            <button class="tab" id="tab-analysis" onclick="switchTab('analysis')" disabled>📊 분석</button>
-            <button class="tab" id="tab-recommend" onclick="switchTab('recommend')" disabled>🎯 추천</button>
-            <button class="tab" id="tab-semiauto" onclick="switchTab('semiauto')" disabled>✏️ 반자동</button>
-        </div>
+  <div class="header">
+    <h1>🎰 로또 6/45 분석</h1>
+    <p>고급 패턴 분석 &amp; AI 추천</p>
+  </div>
 
-        <!-- 데이터 가져오기 탭 -->
-<div id="content-import" class="content">
-    <div class="section-title">데이터 가져오기</div>
-    
+  <div class="tabs">
+    <button class="tab active"  onclick="switchTab('data',this)">📥 데이터</button>
+    <button class="tab" id="tab-analysis"  onclick="switchTab('analysis',this)"  disabled>📊 분석</button>
+    <button class="tab" id="tab-recommend" onclick="switchTab('recommend',this)" disabled>🎯 추천</button>
+    <button class="tab" id="tab-semiauto"  onclick="switchTab('semiauto',this)"  disabled>✏️ 반자동</button>
+  </div>
 
-    <!-- 로컬스토리지 상태 -->
-    <div style="background:#f0f4ff; border:1px solid #c5d0f5; border-radius:10px; padding:12px; margin-bottom:10px;">
-        <div style="font-size:13px; font-weight:bold; color:#667eea; margin-bottom:8px;">💾 브라우저 자동저장</div>
-        <div id="lsStatus" style="font-size:12px; color:#888; margin-bottom:8px;">확인 중...</div>
-        <div style="display:flex; gap:8px;">
-            <button onclick="loadFromLocalStorage()" style="flex:1; padding:8px; background:#667eea; color:white; border:none; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer;">
-                📂 저장 데이터 불러오기
-            </button>
-            <button onclick="clearLocalStorage()" style="padding:8px 12px; background:#ff6b6b; color:white; border:none; border-radius:8px; font-size:13px; cursor:pointer;">
-                🗑️
-            </button>
-        </div>
+  <!-- ▶ 데이터 탭 -->
+  <div id="content-data" class="content">
+    <div class="section-title">데이터 관리</div>
+
+    <div class="ls-bar">
+      <div class="ls-bar-title">💾 브라우저 자동저장</div>
+      <div id="lsStatus">확인 중...</div>
+      <div class="ls-btns">
+        <button class="ls-load" onclick="loadFromLS()">📂 저장 데이터 불러오기</button>
+        <button class="ls-del"  onclick="clearLS()">🗑️</button>
+      </div>
     </div>
 
-    <div class="file-input-wrapper">
-        <input type="file" id="csvFile" accept=".csv" onchange="handleFileUpload(event)">
-        <label for="csvFile" class="file-input-label" id="fileLabel">📄 CSV 파일 선택</label>
-    </div>
-
-    <!-- 🎉 차회 당첨번호 입력 영역 -->
+    <!-- 새 회차 입력 -->
     <div class="analysis-section">
-        <div class="analysis-title">🎉 차회 당첨번호 입력</div>
-        <input type="number" id="newRound" placeholder="회차" style="width:100%;padding:10px;margin-bottom:8px;border-radius:8px;border:1px solid #ccc;">
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
-            <input type="number" class="newNum" placeholder="번호1">
-            <input type="number" class="newNum" placeholder="번호2">
-            <input type="number" class="newNum" placeholder="번호3">
-            <input type="number" class="newNum" placeholder="번호4">
-            <input type="number" class="newNum" placeholder="번호5">
-            <input type="number" class="newNum" placeholder="번호6">
-        </div>
-        <button class="btn btn-primary" onclick="addNewDraw()">입력 저장</button>
+      <div class="analysis-title">➕ 새 회차 입력</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="font-size:14px;color:#666;">다음 회차:</span>
+        <span id="nextRoundDisplay" style="font-size:22px;font-weight:bold;color:#667eea;">-</span>
+        <span style="font-size:14px;color:#666;">회</span>
+      </div>
+      <div class="num-inputs" id="numInputGrid">
+        <button class="num-btn" onclick="openDialog(0)">1번</button>
+        <button class="num-btn" onclick="openDialog(1)">2번</button>
+        <button class="num-btn" onclick="openDialog(2)">3번</button>
+        <button class="num-btn" onclick="openDialog(3)">4번</button>
+        <button class="num-btn" onclick="openDialog(4)">5번</button>
+        <button class="num-btn" onclick="openDialog(5)">6번</button>
+      </div>
+      <button class="btn btn-primary" onclick="addNewDraw()">✅ 저장</button>
     </div>
 
-    <button class="btn btn-secondary" onclick="exportCSV()">💾 CSV로 데이터 저장</button>
+    <!-- CSV 업로드 -->
+    <div class="analysis-section">
+      <div class="analysis-title">📁 CSV 업로드 (백업용)</div>
+      <label for="csvFile" id="fileLabel"
+        style="display:block;padding:13px;background:#8884D8;color:white;border-radius:10px;text-align:center;cursor:pointer;font-weight:bold;margin-bottom:4px;">
+        📄 당첨번호.csv 선택
+      </label>
+      <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleFileUpload(event)">
+    </div>
 
     <div id="importSuccess" class="alert alert-success hidden"></div>
+
+    <button class="btn btn-secondary" onclick="downloadWinCSV()">⬇️ 당첨번호 CSV 다운로드</button>
+    <button class="btn btn-primary"   onclick="downloadRecCSV()">⬇️ 추천번호 CSV 다운로드</button>
+
     <div id="statusBoard" class="alert alert-info hidden">
-        <div style="font-weight: bold; margin-bottom: 8px;">📊 로딩 상태</div>
-        <div id="statusLog" style="font-size: 12px; font-family: monospace; line-height: 1.6; max-height: 200px; overflow-y: auto;"></div>
+      <div style="font-weight:bold;margin-bottom:6px;">📊 로그</div>
+      <div id="statusLog" style="font-size:12px;font-family:monospace;line-height:1.6;max-height:150px;overflow-y:auto;"></div>
     </div>
-</div>
+  </div>
 
-        <!-- 분석 탭 -->
-        <div id="content-analysis" class="content hidden">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">총 회차</div>
-                    <div class="stat-value" id="stat-total">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">분석 범위</div>
-                    <div class="stat-value" id="stat-range">최근20</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">홀수 비율</div>
-                    <div class="stat-value" id="stat-odd">0%</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">짝수 비율</div>
-                    <div class="stat-value" id="stat-even">0%</div>
-                </div>
-            </div>
+  <!-- ▶ 분석 탭 -->
+  <div id="content-analysis" class="content hidden">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">총 회차</div><div class="stat-value" id="stat-total">0</div></div>
+      <div class="stat-card"><div class="stat-label">최근20회 기준</div><div class="stat-value" style="font-size:16px;padding-top:6px;" id="stat-range">-</div></div>
+      <div class="stat-card"><div class="stat-label">홀수 비율</div><div class="stat-value" id="stat-odd">0%</div></div>
+      <div class="stat-card"><div class="stat-label">짝수 비율</div><div class="stat-value" id="stat-even">0%</div></div>
+    </div>
 
+    <div class="section-title">🔥 핫넘버 (최근 20회 top10)</div>
+    <div class="number-grid" id="hotGrid"></div>
 
-            <div class="section-title">📊 번호별 상세 패턴 (1~45)</div>
-<div class="number-grid" id="allNumbersGrid"></div>
+    <div class="section-title">❄️ 콜드넘버 (최근 20회 bottom10)</div>
+    <div class="number-grid" id="coldGrid"></div>
 
-<div id="numberDetail" class="analysis-section hidden"></div>
-            <div class="analysis-section">
-                <div class="analysis-title">📈 연속번호 분석</div>
-                <div class="analysis-item">
-                    <span class="analysis-label">전체 연속번호 포함율</span>
-                    <span class="analysis-value" id="consec-all">0%</span>
-                </div>
-                <div class="analysis-item">
-                    <span class="analysis-label">전체 평균 연속번호 개수</span>
-                    <span class="analysis-value" id="consec-all-avg">0개</span>
-                </div>
-                <div class="analysis-item">
-                    <span class="analysis-label">최근 20회 연속번호 포함율</span>
-                    <span class="analysis-value" id="consec-recent">0%</span>
-                </div>
-                <div class="analysis-item">
-                    <span class="analysis-label">최근 20회 평균 연속번호</span>
-                    <span class="analysis-value" id="consec-recent-avg">0개</span>
-                </div>
-            </div>
+    <div class="section-title">📊 전체 번호 (1~45)</div>
+    <div class="number-grid" id="allGrid"></div>
+    <div id="numberDetail" class="analysis-section hidden"></div>
 
-            <div class="analysis-section">
-                <div class="analysis-title">🔗 AC값 분석 (인접 숫자 쌍)</div>
-                <div class="analysis-item">
-                    <span class="analysis-label">전체 평균 AC값</span>
-                    <span class="analysis-value" id="ac-all">0</span>
-                </div>
-                <div class="analysis-item">
-                    <span class="analysis-label">최근 20회 평균 AC값</span>
-                    <span class="analysis-value" id="ac-recent">0</span>
-                </div>
-                <div class="analysis-item">
-                    <span class="analysis-label">가장 많이 나온 AC값</span>
-                    <span class="analysis-value" id="ac-mode">0</span>
-                </div>
-            </div>
+    <div class="analysis-section">
+      <div class="analysis-title">📈 연속번호 분석</div>
+      <div class="analysis-item"><span class="analysis-label">전체 포함율</span><span class="analysis-value" id="consec-all">0%</span></div>
+      <div class="analysis-item"><span class="analysis-label">전체 평균</span><span class="analysis-value" id="consec-all-avg">0개</span></div>
+      <div class="analysis-item"><span class="analysis-label">최근 20회 포함율</span><span class="analysis-value" id="consec-recent">0%</span></div>
+      <div class="analysis-item"><span class="analysis-label">최근 20회 평균</span><span class="analysis-value" id="consec-recent-avg">0개</span></div>
+    </div>
 
-            <div class="section-title">🏆 TOP 15 빈출 번호</div>
-            <div class="bar-chart" id="topBars"></div>
-        </div>
+    <div class="analysis-section">
+      <div class="analysis-title">🔗 AC값 분석</div>
+      <div class="analysis-item"><span class="analysis-label">전체 평균</span><span class="analysis-value" id="ac-all">0</span></div>
+      <div class="analysis-item"><span class="analysis-label">최근 20회 평균</span><span class="analysis-value" id="ac-recent">0</span></div>
+      <div class="analysis-item"><span class="analysis-label">최빈 AC값</span><span class="analysis-value" id="ac-mode">0</span></div>
+    </div>
 
-        <!-- 추천 탭 -->
-       <div id="content-recommend" class="content hidden">
-    <div class="section-title">🎯 AI 추천 번호 조합</div>
+    <div class="section-title">🏆 TOP 15 빈출번호</div>
+    <div class="bar-chart" id="topBars"></div>
+  </div>
+
+  <!-- ▶ 추천 탭 -->
+  <div id="content-recommend" class="content hidden">
+    <div class="section-title">🎯 AI 추천 번호</div>
 
     <div class="analysis-section" style="text-align:center;">
-        <div style="font-weight:bold;">
-            추천 대상 회차 :
-            <span id="nextRoundLabel">-</span> 회
-        </div>
-        <div style="margin-top:6px;font-size:12px;color:#666;">
-            현재 갱신 횟수 : <span id="refreshCount">0</span>
-        </div>
+      <div style="font-weight:bold;">추천 대상 회차: <span id="nextRoundLabel" style="color:#667eea;font-size:20px;">-</span> 회</div>
+      <div style="font-size:12px;color:#666;margin-top:4px;">갱신 횟수: <span id="refreshCount">0</span></div>
     </div>
 
-<hr style="margin:20px 0;">
+    <hr style="margin:14px 0;border-color:#eee;">
 
-<button class="btn btn-primary" id="advancedBtn" onclick="runAdvancedEngine()">
-    🚀 고급 50회 분석 실행
-</button>
+    <button class="btn btn-primary" id="advancedBtn" onclick="runAdvancedEngine()">🚀 고급 50회 분석 실행</button>
 
-<!-- 실시간 모니터링 박스 -->
-<div id="advancedMonitor" style="display:none; background:#1a1a2e; border-radius:12px; padding:15px; margin-bottom:15px; color:white;">
-    <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px;">
+    <div id="advancedMonitor" style="display:none;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;">
         <span>🔄 분석 진행 중...</span>
-        <span id="monitorPercent" style="font-weight:bold; color:#00ff88;">0%</span>
-    </div>
-    <div style="background:#333; border-radius:8px; height:18px; overflow:hidden; margin-bottom:12px;">
-        <div id="monitorBar" style="height:100%; width:0%; background:linear-gradient(90deg,#667eea,#00ff88); transition:width 0.3s; border-radius:8px;"></div>
-    </div>
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; text-align:center;">
-        <div style="background:#16213e; border-radius:8px; padding:10px;">
-            <div style="font-size:11px; color:#aaa; margin-bottom:4px;">진행 회차</div>
-            <div id="monitorRound" style="font-size:22px; font-weight:bold; color:#667eea;">0</div>
-            <div style="font-size:10px; color:#666;">/ 50</div>
+        <span id="monitorPercent" style="font-weight:bold;color:#00ff88;">0%</span>
+      </div>
+      <div style="background:#333;border-radius:8px;height:16px;overflow:hidden;margin-bottom:12px;">
+        <div id="monitorBar" style="height:100%;width:0%;background:linear-gradient(90deg,#667eea,#00ff88);transition:width 0.3s;border-radius:8px;"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;text-align:center;">
+        <div style="background:#16213e;border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">진행</div>
+          <div id="monitorRound" style="font-size:20px;font-weight:bold;color:#667eea;">0</div>
+          <div style="font-size:10px;color:#666;">/ 50</div>
         </div>
-        <div style="background:#16213e; border-radius:8px; padding:10px;">
-            <div style="font-size:11px; color:#aaa; margin-bottom:4px;">후보 수집</div>
-            <div id="monitorCandidates" style="font-size:22px; font-weight:bold; color:#ffd700;">0</div>
-            <div style="font-size:10px; color:#666;">개</div>
+        <div style="background:#16213e;border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">후보</div>
+          <div id="monitorCandidates" style="font-size:20px;font-weight:bold;color:#ffd700;">0</div>
         </div>
-        <div style="background:#16213e; border-radius:8px; padding:10px;">
-            <div style="font-size:11px; color:#aaa; margin-bottom:4px;">현재 최고점</div>
-            <div id="monitorBestScore" style="font-size:22px; font-weight:bold; color:#ff6b6b;">-</div>
-            <div style="font-size:10px; color:#666;">점</div>
+        <div style="background:#16213e;border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">최고점</div>
+          <div id="monitorBestScore" style="font-size:20px;font-weight:bold;color:#ff6b6b;">-</div>
         </div>
-    </div>
-    <div style="background:#16213e; border-radius:8px; padding:10px; margin-bottom:10px;">
-        <div style="font-size:11px; color:#aaa; margin-bottom:6px;">🎲 현재 분석 중인 조합</div>
-        <div id="monitorCurrentCombo" style="display:flex; gap:6px; justify-content:center; min-height:36px; align-items:center;">
-            <span style="color:#555; font-size:12px;">대기 중...</span>
+      </div>
+      <div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:8px;">
+        <div style="font-size:10px;color:#aaa;margin-bottom:5px;">🎲 현재 조합</div>
+        <div id="monitorCurrentCombo" style="display:flex;gap:5px;justify-content:center;min-height:32px;align-items:center;">
+          <span style="color:#555;font-size:12px;">대기 중...</span>
         </div>
+      </div>
+      <div style="background:#0d1117;border-radius:8px;padding:10px;">
+        <div style="font-size:10px;color:#aaa;margin-bottom:4px;">📋 로그</div>
+        <div id="monitorLog" style="font-size:11px;font-family:monospace;color:#00ff88;max-height:80px;overflow-y:auto;line-height:1.8;"></div>
+      </div>
     </div>
-    <div style="background:#0d1117; border-radius:8px; padding:10px;">
-        <div style="font-size:11px; color:#aaa; margin-bottom:6px;">📋 분석 로그</div>
-        <div id="monitorLog" style="font-size:11px; font-family:monospace; color:#00ff88; max-height:100px; overflow-y:auto; line-height:1.8;"></div>
-    </div>
-</div>
 
-<div id="advancedResults"></div>
-
+    <div id="advancedResults"></div>
     <button class="btn btn-primary" onclick="refreshRecommendations()">🔄 갱신</button>
-    <button class="btn btn-secondary" onclick="saveRecommendations()">💾 추천번호 저장</button>
-
-    <div class="file-input-wrapper">
-        <input type="file" id="recFile" accept=".csv" onchange="loadRecommendations(event)">
-        <label for="recFile" class="file-input-label">📂 추천번호 불러오기</label>
-    </div>
-
     <div id="recommendations"></div>
 
-    <!-- 추천번호 분석 패널 -->
-    <div id="recAnalysisPanel" style="display:none; margin-top:10px;">
+    <label for="recFile" style="display:block;padding:13px;background:#8884D8;color:white;border-radius:10px;text-align:center;cursor:pointer;font-weight:bold;margin-bottom:10px;">
+      📂 추천번호 불러오기
+    </label>
+    <input type="file" id="recFile" accept=".csv" style="display:none" onchange="loadRecommendations(event)">
 
-        <div style="background:#1a1a2e; border-radius:12px; padding:15px; margin-bottom:12px; color:white;">
-            <div style="font-size:14px; font-weight:bold; margin-bottom:8px;">⚙️ 처리 프로세스</div>
-            <div id="recProcessLog" style="font-size:12px; font-family:monospace; color:#00ff88; line-height:1.8; max-height:160px; overflow-y:auto;"></div>
-        </div>
-
-        <div id="recResult" class="analysis-section" style="display:none;"></div>
-
-        <div style="background:#fff3e0; border:1px solid #ffb74d; border-radius:12px; padding:15px; margin-bottom:12px;">
-            <div style="font-size:14px; font-weight:bold; color:#e65100; margin-bottom:10px;">🔁 추천번호 간 중복 분석</div>
-            <div id="recDupResult"></div>
-        </div>
-
-        <div style="background:#e8f5e9; border:1px solid #81c784; border-radius:12px; padding:15px; margin-bottom:12px;">
-            <div style="font-size:14px; font-weight:bold; color:#2e7d32; margin-bottom:10px;">📊 추천번호 분포도</div>
-            <div id="recDistResult"></div>
-        </div>
-
-        <button class="btn btn-primary" onclick="mergeRecToData()">
-            📥 추천번호 → 당첨데이터 추가 후 CSV 저장
-        </button>
-        <div id="mergeResult" class="alert alert-success" style="display:none; margin-top:8px;"></div>
+    <div id="recAnalysisPanel" style="display:none;margin-top:10px;">
+      <div style="background:#1a1a2e;border-radius:12px;padding:15px;margin-bottom:12px;color:white;">
+        <div style="font-size:14px;font-weight:bold;margin-bottom:8px;">⚙️ 처리 프로세스</div>
+        <div id="recProcessLog" style="font-size:12px;font-family:monospace;color:#00ff88;line-height:1.8;max-height:140px;overflow-y:auto;"></div>
+      </div>
+      <div id="recResult" class="analysis-section" style="display:none;"></div>
+      <div style="background:#fff3e0;border:1px solid #ffb74d;border-radius:12px;padding:15px;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:bold;color:#e65100;margin-bottom:10px;">🔁 중복 분석</div>
+        <div id="recDupResult"></div>
+      </div>
+      <div style="background:#e8f5e9;border:1px solid #81c784;border-radius:12px;padding:15px;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:bold;color:#2e7d32;margin-bottom:10px;">📊 분포도</div>
+        <div id="recDistResult"></div>
+      </div>
+      <button class="btn btn-primary" onclick="mergeRecToData()">📥 추천 → 당첨데이터 추가 후 CSV 저장</button>
+      <div id="mergeResult" class="alert alert-success" style="display:none;margin-top:8px;"></div>
     </div>
 
-    <div class="alert alert-warning" style="text-align:center; margin-top:10px;">
-        ⚠️ 로또는 확률 게임입니다.
+    <div class="alert alert-warning" style="text-align:center;margin-top:10px;">
+      ⚠️ 로또는 확률 게임입니다.
     </div>
+  </div>
+
+  <!-- ▶ 반자동 탭 -->
+  <div id="content-semiauto" class="content hidden">
+    <div class="section-title">✏️ 반자동 번호 생성</div>
+    <div class="alert alert-info" style="margin-bottom:14px;font-size:13px;">
+      번호를 직접 터치해서 선택 (최대 5개).<br>나머지는 통계 기반 자동 완성됩니다.
+    </div>
+    <div id="semiautoTickets"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <button class="btn btn-primary"   style="margin:0;" onclick="addSemiTicket()">+ 게임 추가</button>
+      <button class="btn btn-secondary" style="margin:0;" onclick="clearAllTickets()">초기화</button>
+    </div>
+    <div id="semiResultPanel" style="display:none;">
+      <div class="section-title" style="margin-top:10px;">🎟️ 완성된 번호</div>
+      <div id="semiResultList"></div>
+      <button class="btn btn-primary" onclick="regenerateAuto()">🔄 자동 부분 재생성</button>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- 번호 선택 다이얼로그 -->
+<div id="dialogOverlay" class="dialog-overlay hidden" onclick="closeDialogOutside(event)">
+  <div class="dialog-box" onclick="event.stopPropagation()">
+    <div class="dialog-title" id="dialogTitle">번호 선택</div>
+    <div class="dialog-grid" id="dialogGrid"></div>
+    <div class="dialog-actions">
+      <button class="d-cancel"  onclick="closeDialog()">취소</button>
+      <button class="d-confirm" onclick="confirmDialog()">확인</button>
+    </div>
+  </div>
 </div>
 
-        <!-- 반자동 탭 -->
-        <div id="content-semiauto" class="content hidden">
-            <div class="section-title">✏️ 반자동 번호 생성</div>
-            <div class="alert alert-info" style="margin-bottom:14px; font-size:13px;">
-                번호를 직접 터치해서 선택하세요 (최대 5개).<br>
-                나머지는 통계 기반으로 자동 완성됩니다.
-            </div>
-
-            <div id="semiautoTickets"></div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
-                <button class="btn btn-primary" style="margin:0;" onclick="addSemiTicket()">+ 게임 추가</button>
-                <button class="btn btn-secondary" style="margin:0;" onclick="clearAllTickets()">초기화</button>
-            </div>
-
-            <div id="semiResultPanel" style="display:none;">
-                <div class="section-title" style="margin-top:10px;">🎟️ 완성된 번호</div>
-                <div id="semiResultList"></div>
-                <button class="btn btn-primary" onclick="regenerateAuto()">🔄 자동부분 다시 생성</button>
-            </div>
-        </div>
-
-    <script>
-        let lottoData = [];
-        let analysis = null;
-        let currentRecommendations = [];
-let refreshCounter = 0;
-let recommendationHistory = [];
-
-let advancedPool = [];
-let finalTop5 = [];
-
-
-        function addLog(message, type = 'info') {
-            const statusBoard = document.getElementById('statusBoard');
-            const statusLog = document.getElementById('statusLog');
-            statusBoard.classList.remove('hidden');
-            const timestamp = new Date().toLocaleTimeString('ko-KR');
-            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
-            const color = type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#0c5460';
-            const logEntry = document.createElement('div');
-            logEntry.style.color = color;
-            logEntry.innerHTML = `[${timestamp}] ${icon} ${message}`;
-            statusLog.appendChild(logEntry);
-            statusLog.scrollTop = statusLog.scrollHeight;
-        }
-
-        function clearLog() {
-            document.getElementById('statusLog').innerHTML = '';
-        }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-            event.target.classList.add('active');
-            ['import','analysis','recommend','semiauto'].forEach(function(id) {
-                document.getElementById('content-' + id).classList.add('hidden');
-            });
-            document.getElementById('content-' + tab).classList.remove('hidden');
-        }
-
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            clearLog();
-            addLog(`파일: ${file.name} (${(file.size/1024).toFixed(2)} KB)`);
-            const fileLabel = document.getElementById('fileLabel');
-            fileLabel.innerHTML = '⏳ 읽는 중...';
-            fileLabel.style.background = '#FFA500';
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                addLog('파일 읽기 완료');
-                parseCSVData(e.target.result, file.name);
-            };
-            reader.readAsText(file, 'UTF-8');
-        }
-
-        function parseCSVData(csvText, fileName) {
-            try {
-                const lines = csvText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().split('\n');
-                addLog(`총 ${lines.length}줄 파싱 시작`);
-                lottoData = [];
-                let startIndex = lines[0].match(/[가-힣a-zA-Z]/) ? 1 : 0;
-                
-                for (let i = startIndex; i < lines.length; i++) {
-                    const values = lines[i].trim().split(',').map(v => v.trim());
-                    if (values.length >= 7) {
-                        const round = parseInt(values[0]);
-                        const numbers = values.slice(1, 7).map(v => parseInt(v));
-                        if (!isNaN(round) && numbers.every(n => !isNaN(n) && n >= 1 && n <= 45)) {
-                            lottoData.push({ round, numbers });
-                        }
-                    }
-                }
-                
-                if (lottoData.length > 0) {
-                    addLog(`✅ ${lottoData.length}개 회차 로드 성공!`, 'success');
-                    document.getElementById('importSuccess').innerHTML = `✅ <strong>${lottoData.length}</strong>개 회차 (${lottoData[0].round}~${lottoData[lottoData.length-1].round}회)`;
-                    document.getElementById('importSuccess').classList.remove('hidden');
-                    const fileLabel = document.getElementById('fileLabel');
-                    fileLabel.innerHTML = '✅ 로드 완료';
-                    fileLabel.style.background = '#00C49F';
-                    analyzeData();
-                    document.getElementById('tab-analysis').disabled = false;
-                    document.getElementById('tab-recommend').disabled = false;
-                    document.getElementById('tab-semiauto').disabled = false;
-                } else {
-                    addLog('데이터 없음', 'error');
-                }
-            } catch (error) {
-                addLog(`오류: ${error.message}`, 'error');
-            }
-        }
-
-        function loadSampleData() {
-            clearLog();
-            addLog('샘플 데이터 생성 중...');
-            lottoData = [];
-            for (let i = 1; i <= 100; i++) {
-                const numbers = [];
-                while (numbers.length < 6) {
-                    const num = Math.floor(Math.random() * 45) + 1;
-                    if (!numbers.includes(num)) numbers.push(num);
-                }
-                lottoData.push({ round: i, numbers: numbers.sort((a,b) => a-b) });
-            }
-            addLog('✅ 샘플 100개 생성 완료', 'success');
-            document.getElementById('importSuccess').innerHTML = `✅ <strong>100</strong>개 샘플 데이터`;
-            document.getElementById('importSuccess').classList.remove('hidden');
-            const fileLabel = document.getElementById('fileLabel');
-            fileLabel.innerHTML = '✅ 로드 완료';
-            fileLabel.style.background = '#00C49F';
-            analyzeData();
-            document.getElementById('tab-analysis').disabled = false;
-            document.getElementById('tab-recommend').disabled = false;
-            document.getElementById('tab-semiauto').disabled = false;
-        }
-
-        function countConsecutive(numbers) {
-            let count = 0;
-            for (let i = 0; i < numbers.length - 1; i++) {
-                if (numbers[i+1] - numbers[i] === 1) count++;
-            }
-            return count;
-        }
-
-        function calculateAC(numbers) {
-            const sorted = [...numbers].sort((a,b) => a-b);
-            let ac = 0;
-            for (let i = 0; i < sorted.length - 1; i++) {
-                for (let j = i + 1; j < sorted.length; j++) {
-                    if (sorted[j] - sorted[i] === 1) ac++;
-                }
-            }
-            return ac;
-        }
-
-        function analyzeData() {
-            addLog('분석 시작...');
-            
-            const frequency = {};
-            for (let i = 1; i <= 45; i++) frequency[i] = 0;
-            const existingCombos = new Set();
-            let oddCount = 0, evenCount = 0;
-
-            lottoData.forEach(draw => {
-                draw.numbers.forEach(num => {
-                    frequency[num]++;
-                    if (num % 2 === 0) evenCount++; else oddCount++;
-                });
-                existingCombos.add([...draw.numbers].sort((a,b) => a-b).join(','));
-            });
-
-            const recent20 = lottoData.slice(-20);
-            const recentFreq = {};
-            for (let i = 1; i <= 45; i++) recentFreq[i] = 0;
-            recent20.forEach(draw => {
-                draw.numbers.forEach(num => recentFreq[num]++);
-            });
-
-            const recentSorted = Object.keys(recentFreq).map(n => ({
-                number: parseInt(n),
-                count: recentFreq[n]
-            })).sort((a,b) => b.count - a.count);
-
-            const hotNumbers = recentSorted.slice(0, 10).map(s => s.number);
-            const coldNumbers = recentSorted.slice(-10).map(s => s.number);
-
-            let consecCountAll = 0, consecPresentAll = 0;
-            let consecCountRecent = 0, consecPresentRecent = 0;
-            
-            lottoData.forEach(draw => {
-                const consec = countConsecutive(draw.numbers);
-                if (consec > 0) consecPresentAll++;
-                consecCountAll += consec;
-            });
-
-            recent20.forEach(draw => {
-                const consec = countConsecutive(draw.numbers);
-                if (consec > 0) consecPresentRecent++;
-                consecCountRecent += consec;
-            });
-
-            const acValues = lottoData.map(draw => calculateAC(draw.numbers));
-            const acRecent = recent20.map(draw => calculateAC(draw.numbers));
-            const acAvgAll = (acValues.reduce((a,b) => a+b, 0) / acValues.length).toFixed(2);
-            const acAvgRecent = (acRecent.reduce((a,b) => a+b, 0) / acRecent.length).toFixed(2);
-            
-            const acMode = acValues.reduce((acc, val) => {
-                acc[val] = (acc[val] || 0) + 1;
-                return acc;
-            }, {});
-            const mostCommonAC = Object.keys(acMode).reduce((a, b) => acMode[a] > acMode[b] ? a : b);
-
-            const numberStats = Object.keys(frequency).map(num => ({
-                number: parseInt(num),
-                count: frequency[num],
-                recentCount: recentFreq[num] || 0
-            }));
-
-            const sortedByFreq = [...numberStats].sort((a,b) => b.count - a.count);
-
-            analysis = {
-                numberStats, sortedByFreq, existingCombos,
-                totalDraws: lottoData.length,
-                oddPercentage: (oddCount / (lottoData.length * 6) * 100).toFixed(1),
-                evenPercentage: (evenCount / (lottoData.length * 6) * 100).toFixed(1),
-                hotNumbers, coldNumbers,
-                consecPercentAll: (consecPresentAll / lottoData.length * 100).toFixed(1),
-                consecAvgAll: (consecCountAll / lottoData.length).toFixed(2),
-                consecPercentRecent: (consecPresentRecent / recent20.length * 100).toFixed(1),
-                consecAvgRecent: (consecCountRecent / recent20.length).toFixed(2),
-                acAvgAll, acAvgRecent,
-                mostCommonAC: parseInt(mostCommonAC)
-            };
-
-            addLog('분석 완료', 'success');
-            updateAnalysisUI();
-            generateRecommendations();
-            saveToLocalStorage();
-        }
-
-        function updateAnalysisUI() {
-            document.getElementById('stat-total').textContent = analysis.totalDraws;
-            document.getElementById('stat-odd').textContent = analysis.oddPercentage + '%';
-            document.getElementById('stat-even').textContent = analysis.evenPercentage + '%';
-
-            // 전체 1~45 표시
-const grid = document.getElementById('allNumbersGrid');
-grid.innerHTML = '';
-
-for (let i = 1; i <= 45; i++) {
-
-    const stat = analysis.numberStats.find(s => s.number === i);
-    const div = document.createElement('div');
-
-    let className = "number-item";
-
-    if (analysis.hotNumbers.includes(i)) className += " hot";
-    else if (analysis.coldNumbers.includes(i)) className += " cold";
-
-    div.className = className;
-
-    const freq = ((stat.count / analysis.totalDraws) * 100).toFixed(1);
-    div.innerHTML = `
-        <div class="number-value">${i}</div>
-        <div class="number-count">
-            ${stat.count}회<br>
-            <span style="font-size:10px;color:${analysis.hotNumbers.includes(i) || analysis.coldNumbers.includes(i) ? 'rgba(255,255,255,0.9)' : '#999'};">
-                ${freq}%
-            </span>
-        </div>
-    `;
-
-    div.onclick = () => showNumberDetail(i);
-
-    grid.appendChild(div);
-}
-
-            document.getElementById('consec-all').textContent = analysis.consecPercentAll + '%';
-            document.getElementById('consec-all-avg').textContent = analysis.consecAvgAll + '개';
-            document.getElementById('consec-recent').textContent = analysis.consecPercentRecent + '%';
-            document.getElementById('consec-recent-avg').textContent = analysis.consecAvgRecent + '개';
-
-            document.getElementById('ac-all').textContent = analysis.acAvgAll;
-            document.getElementById('ac-recent').textContent = analysis.acAvgRecent;
-            document.getElementById('ac-mode').textContent = analysis.mostCommonAC;
-
-            // 막대 차트
-            const barsDiv = document.getElementById('topBars');
-            barsDiv.innerHTML = '';
-            const maxCount = analysis.sortedByFreq[0].count;
-            analysis.sortedByFreq.slice(0, 15).forEach(stat => {
-                const barItem = document.createElement('div');
-                barItem.className = 'bar-item';
-                const percent = (stat.count / maxCount * 100);
-                barItem.innerHTML = `
-                    <div class="bar-label">${stat.number}</div>
-                    <div class="bar-fill-container">
-                        <div class="bar-fill" style="width: ${percent}%"></div>
-                        <div class="bar-count">${stat.count}회</div>
-                    </div>
-                `;
-                barsDiv.appendChild(barItem);
-            });
-        }
-
-        function generateRecommendations() {
-            refreshCounter++;
-document.getElementById("refreshCount").textContent = refreshCounter;
-
-const nextRound = lottoData[lottoData.length - 1].round + 1;
-document.getElementById("nextRoundLabel").textContent = nextRound;
-            addLog('추천 번호 생성 중...');
-            const recommendations = [];
-            const maxAttempts = 10000;
-            let attempts = 0;
-
-            while (recommendations.length < 5 && attempts < maxAttempts) {
-                attempts++;
-                const combo = new Set();
-
-                const numHot = 2 + Math.floor(Math.random() * 2);
-                for (let i = 0; i < numHot && combo.size < 6; i++) {
-                    combo.add(analysis.hotNumbers[Math.floor(Math.random() * Math.min(10, analysis.hotNumbers.length))]);
-                }
-
-                while (combo.size < 6) {
-                    combo.add(1 + Math.floor(Math.random() * 45));
-                }
-
-                const sortedCombo = Array.from(combo).sort((a,b) => a-b);
-                const comboStr = sortedCombo.join(',');
-
-                if (!analysis.existingCombos.has(comboStr)) {
-                    const oddCount = sortedCombo.filter(n => n % 2 === 1).length;
-                    const consec = countConsecutive(sortedCombo);
-                    const ac = calculateAC(sortedCombo);
-                    
-                    if (oddCount >= 2 && oddCount <= 4) {
-                        recommendations.push({
-                            id: recommendations.length + 1,
-                            numbers: sortedCombo,
-                            oddCount, evenCount: 6 - oddCount,
-                            sum: sortedCombo.reduce((a,b) => a+b, 0),
-                            consecutive: consec,
-                            ac: ac
-                        });
-                        analysis.existingCombos.add(comboStr);
-                    }
-                }
-            }
-
-            addLog(`✅ ${recommendations.length}개 조합 생성 완료`, 'success');
-            displayRecommendations(recommendations);
-
-currentRecommendations = recommendations;
-
-recommendationHistory.push({
-    round: nextRound,
-    refresh: refreshCounter,
-    combos: recommendations
-});
-
-        }
-
-        function displayRecommendations(recommendations) {
-            const container = document.getElementById('recommendations');
-            container.innerHTML = '';
-
-            if (recommendations.length === 0) {
-                container.innerHTML = '<div class="alert alert-warning">추천 번호를 생성할 수 없습니다. 더 많은 데이터가 필요합니다.</div>';
-                return;
-            }
-
-            recommendations.forEach(rec => {
-                const div = document.createElement('div');
-                div.className = 'recommendation';
-                div.innerHTML = `
-                    <div class="rec-header">
-                        <div class="rec-title">추천 조합 #${rec.id}</div>
-                        <div style="font-size: 11px; color: #666;">AC: ${rec.ac} | 연속: ${rec.consecutive}</div>
-                    </div>
-                    <div class="rec-numbers">
-                        ${rec.numbers.map(num => `
-                            <div class="lotto-ball ${num % 2 === 0 ? 'even' : 'odd'}">${num}</div>
-                        `).join('')}
-                    </div>
-                    <div class="rec-info">
-                        <div>홀: <strong>${rec.oddCount}</strong></div>
-                        <div>짝: <strong>${rec.evenCount}</strong></div>
-                        <div>합: <strong>${rec.sum}</strong></div>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-
-//다음회차 당첨번호 입력 
-function addNewDraw() {
-
-    const round = parseInt(document.getElementById('newRound').value);
-    const nums = Array.from(document.querySelectorAll('.newNum'))
-        .map(input => parseInt(input.value))
-        .filter(n => !isNaN(n));
-
-    if (!round || nums.length !== 6) {
-        addLog("입력값이 올바르지 않습니다.", "error");
-        return;
-    }
-
-    if (new Set(nums).size !== 6 || nums.some(n => n < 1 || n > 45)) {
-        addLog("번호는 1~45 사이 중복없이 입력하세요.", "error");
-        return;
-    }
-
-    // 🔍 중복 회차 검사
-    if (lottoData.some(d => d.round === round)) {
-        addLog("이미 존재하는 회차입니다.", "error");
-        return;
-    }
-
-    lottoData.push({
-        round: round,
-        numbers: nums.sort((a,b)=>a-b)
-    });
-
-    lottoData.sort((a,b)=>a.round - b.round);
-
-    addLog("최종회가 정상 기록 되었습니다", "success");
-
-    analyzeData();
-}
-
-//당첨번호.csv 저장 
-function exportCSV() {
-
-    if (lottoData.length === 0) {
-        alert("저장할 데이터가 없습니다.");
-        return;
-    }
-
-    let csv = "회차,번호1,번호2,번호3,번호4,번호5,번호6\n";
-
-    lottoData.forEach(draw => {
-        csv += draw.round + "," + draw.numbers.join(",") + "\n";
-    });
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "당첨번호.csv";
-    link.click();
-}
-
-//번호별 분석
-function showNumberDetail(number) {
-
-    const stat = analysis.numberStats.find(s => s.number === number);
-
-    const appearances = lottoData
-        .map(draw => draw.numbers.includes(number))
-        .filter(v => v).length;
-
-    const lastDraw = [...lottoData].reverse()
-        .find(draw => draw.numbers.includes(number));
-
-    const missStreak = [...lottoData].reverse()
-        .findIndex(draw => draw.numbers.includes(number));
-
-    const detail = document.getElementById('numberDetail');
-    detail.classList.remove('hidden');
-
-    detail.innerHTML = `
-        <div class="analysis-title">${number}번 상세 분석</div>
-        <div class="analysis-item">
-            <span class="analysis-label">총 출현 횟수</span>
-            <span class="analysis-value">${appearances}회</span>
-        </div>
-        <div class="analysis-item">
-            <span class="analysis-label">최근 출현 회차</span>
-            <span class="analysis-value">${lastDraw ? lastDraw.round : '없음'}</span>
-        </div>
-        <div class="analysis-item">
-            <span class="analysis-label">현재 연속 미출현</span>
-            <span class="analysis-value">${missStreak}회</span>
-        </div>
-        <div class="analysis-item">
-            <span class="analysis-label">전체 출현 확률</span>
-            <span class="analysis-value">${(appearances / analysis.totalDraws * 100).toFixed(1)}%</span>
-        </div>
-    `;
-}
-
-//갱신 함수
-
-function refreshRecommendations() {
-    generateRecommendations();
-}
-//추천번호저장
-  function saveRecommendations() {
-
-    if (recommendationHistory.length === 0) {
-        alert("저장할 추천 데이터가 없습니다.");
-        return;
-    }
-
-    let csv = "회차,갱신,번호1,번호2,번호3,번호4,번호5,번호6\n";
-
-    recommendationHistory.forEach(entry => {
-        entry.combos.forEach(c => {
-            csv += entry.round + "," + entry.refresh + "," +
-                c.numbers.join(",") + "\n";
-        });
-    });
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "추천번호.csv";
-    link.click();
-} 
-
-let loadedRecData = [];
-
-function recLog(msg, color) {
-    const el = document.getElementById('recProcessLog');
-    const d = document.createElement('div');
-    d.style.color = color || '#00ff88';
-    const ts = new Date().toLocaleTimeString('ko-KR');
-    d.textContent = '[' + ts + '] ' + msg;
-    el.appendChild(d);
-    el.scrollTop = el.scrollHeight;
-}
-
-function loadRecommendations(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    document.getElementById('recAnalysisPanel').style.display = 'block';
-    document.getElementById('recProcessLog').innerHTML = '';
-    document.getElementById('recDupResult').innerHTML = '';
-    document.getElementById('recDistResult').innerHTML = '';
-    document.getElementById('recResult').style.display = 'none';
-    document.getElementById('mergeResult').style.display = 'none';
-    loadedRecData = [];
-    recLog('파일 로드: ' + file.name);
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        recLog('파일 읽기 완료');
-        const lines = e.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n');
-        recLog('총 ' + lines.length + '줄 파싱');
-        let parsed = 0, skipped = 0;
-        lines.slice(1).forEach(function(line) {
-            const parts = line.split(',').map(function(v) { return v.trim(); });
-            if (parts.length < 8) { skipped++; return; }
-            const round = parseInt(parts[0]);
-            const refresh = parseInt(parts[1]);
-            const nums = parts.slice(2, 8).map(function(n) { return parseInt(n); });
-            if (isNaN(round) || nums.some(isNaN)) { skipped++; return; }
-            loadedRecData.push({ round: round, refresh: refresh, numbers: nums });
-            parsed++;
-        });
-        recLog('완료: ' + parsed + '개 유효, ' + skipped + '개 건너뜀');
-        let total = 0, totalMatch = 0;
-        const matchDetail = {0:0,1:0,2:0,3:0,4:0,5:0,6:0};
-        loadedRecData.forEach(function(rec) {
-            const actual = lottoData.find(function(d) { return d.round === rec.round; });
-            if (actual) {
-                const match = rec.numbers.filter(function(n) { return actual.numbers.includes(n); }).length;
-                totalMatch += match;
-                matchDetail[match]++;
-                total++;
-            }
-        });
-        if (total > 0) {
-            const rate = (totalMatch / (total * 6) * 100).toFixed(2);
-            recLog('적중 분석: ' + total + '개 비교, ' + rate + '%');
-            const recResultEl = document.getElementById('recResult');
-            recResultEl.style.display = 'block';
-            let rows = '';
-            for (let k = 6; k >= 0; k--) {
-                if (matchDetail[k] > 0) {
-                    const label = k===6?'1등':k===5?'2/3등':k===4?'4등':k===3?'5등':(k+'개 일치');
-                    rows += '<div class="analysis-item"><span class="analysis-label">' + label + '</span><span class="analysis-value">' + matchDetail[k] + '회</span></div>';
-                }
-            }
-            recResultEl.innerHTML = '<div class="analysis-title">적중률 상세</div>' +
-                '<div class="analysis-item"><span class="analysis-label">총 비교</span><span class="analysis-value">' + total + '개</span></div>' +
-                '<div class="analysis-item"><span class="analysis-label">총 일치</span><span class="analysis-value">' + totalMatch + '개</span></div>' +
-                '<div class="analysis-item"><span class="analysis-label">평균 적중률</span><span class="analysis-value">' + rate + '%</span></div>' + rows;
-        } else {
-            recLog('매칭 회차 없음');
-        }
-        recLog('중복 분석 중...');
-        analyzeRecDuplication();
-        recLog('분포도 분석 중...');
-        analyzeRecDistribution();
-        recLog('모든 분석 완료!');
-    };
-    reader.readAsText(file, 'UTF-8');
-}
-
-function analyzeRecDuplication() {
-    const el = document.getElementById('recDupResult');
-    if (loadedRecData.length === 0) { el.innerHTML = '<div>데이터 없음</div>'; return; }
-    const keys = loadedRecData.map(function(r) { return r.numbers.join(','); });
-    const dupMap = {};
-    keys.forEach(function(k, i) {
-        if (!dupMap[k]) dupMap[k] = [];
-        dupMap[k].push(i + 2);
-    });
-    const dups = Object.entries(dupMap).filter(function(e) { return e[1].length > 1; });
-    const sample = loadedRecData.slice(0, Math.min(loadedRecData.length, 20));
-    let maxOverlap = 0;
-    const overlapPairs = [];
-    for (let i = 0; i < sample.length; i++) {
-        for (let j = i + 1; j < sample.length; j++) {
-            const shared = sample[i].numbers.filter(function(n) { return sample[j].numbers.includes(n); });
-            if (shared.length >= 3) overlapPairs.push({ i: i+1, j: j+1, shared: shared, count: shared.length });
-            if (shared.length > maxOverlap) maxOverlap = shared.length;
-        }
-    }
-    overlapPairs.sort(function(a,b) { return b.count - a.count; });
-    let html = '';
-    if (dups.length > 0) {
-        html += '<div style="background:#ffebee;border-radius:8px;padding:10px;margin-bottom:8px;">';
-        html += '<div style="font-weight:bold;color:#c62828;margin-bottom:6px;">완전 동일 조합: ' + dups.length + '건</div>';
-        dups.forEach(function(d) {
-            html += '<div style="font-size:12px;color:#c62828;">[' + d[0] + '] - ' + d[1].length + '회 중복</div>';
-        });
-        html += '</div>';
-    } else {
-        html += '<div style="background:#e8f5e9;border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px;color:#2e7d32;">완전 중복 없음</div>';
-    }
-    if (overlapPairs.length > 0) {
-        html += '<div style="font-size:13px;font-weight:bold;color:#e65100;margin-bottom:6px;">3개 이상 번호 겹침 (' + overlapPairs.length + '쌍)</div>';
-        overlapPairs.slice(0, 10).forEach(function(p) {
-            html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">';
-            html += '<span style="font-size:12px;color:#666;">조합' + p.i + ' vs 조합' + p.j + ' (' + p.count + '개):</span>';
-            p.shared.forEach(function(n) {
-                html += '<div style="width:28px;height:28px;border-radius:50%;background:#ff8042;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:bold;">' + n + '</div>';
-            });
-            html += '</div>';
-        });
-    } else {
-        html += '<div style="font-size:13px;color:#2e7d32;">3개 이상 겹침 없음</div>';
-    }
-    html += '<div style="font-size:12px;color:#999;margin-top:8px;">최대 겹침: ' + maxOverlap + '개</div>';
-    el.innerHTML = html;
-}
-
-function analyzeRecDistribution() {
-    const el = document.getElementById('recDistResult');
-    if (loadedRecData.length === 0) { el.innerHTML = '<div>데이터 없음</div>'; return; }
-    const freq = {};
-    for (let i = 1; i <= 45; i++) freq[i] = 0;
-    loadedRecData.forEach(function(r) { r.numbers.forEach(function(n) { freq[n]++; }); });
-    const ranges = {'1-9':0,'10-19':0,'20-29':0,'30-39':0,'40-45':0};
-    loadedRecData.forEach(function(r) {
-        r.numbers.forEach(function(n) {
-            if (n<=9) ranges['1-9']++;
-            else if (n<=19) ranges['10-19']++;
-            else if (n<=29) ranges['20-29']++;
-            else if (n<=39) ranges['30-39']++;
-            else ranges['40-45']++;
-        });
-    });
-    let odd = 0, even = 0;
-    loadedRecData.forEach(function(r) {
-        r.numbers.forEach(function(n) { n%2===1 ? odd++ : even++; });
-    });
-    const total = odd + even;
-    const sorted = Object.entries(freq).filter(function(e) { return e[1]>0; }).sort(function(a,b) { return b[1]-a[1]; });
-    const maxFreq = sorted.length > 0 ? sorted[0][1] : 1;
-    const rangeColors = {'1-9':'#667eea','10-19':'#f093fb','20-29':'#4facfe','30-39':'#43e97b','40-45':'#fa709a'};
-    const rangeTotal = Object.values(ranges).reduce(function(a,b) { return a+b; }, 0);
-    let html = '<div style="margin-bottom:12px;">';
-    html += '<div style="font-size:12px;color:#555;margin-bottom:6px;font-weight:bold;">홀짝 분포</div>';
-    html += '<div style="display:flex;gap:8px;">';
-    html += '<div style="flex:' + odd + ';background:#FF8042;border-radius:6px;padding:8px;text-align:center;color:white;font-size:13px;font-weight:bold;">홀수 ' + odd + '<br><span style="font-size:11px;">' + (odd/total*100).toFixed(1) + '%</span></div>';
-    html += '<div style="flex:' + even + ';background:#00C49F;border-radius:6px;padding:8px;text-align:center;color:white;font-size:13px;font-weight:bold;">짝수 ' + even + '<br><span style="font-size:11px;">' + (even/total*100).toFixed(1) + '%</span></div>';
-    html += '</div></div>';
-    html += '<div style="margin-bottom:12px;">';
-    html += '<div style="font-size:12px;color:#555;margin-bottom:6px;font-weight:bold;">구간별 분포</div>';
-    Object.entries(ranges).forEach(function(entry) {
-        const label = entry[0], cnt = entry[1];
-        const pct = rangeTotal > 0 ? (cnt/rangeTotal*100).toFixed(1) : 0;
-        html += '<div style="display:flex;align-items:center;margin-bottom:5px;">';
-        html += '<div style="width:50px;font-size:11px;color:#555;">' + label + '</div>';
-        html += '<div style="flex:1;background:#eee;border-radius:4px;height:18px;overflow:hidden;position:relative;">';
-        html += '<div style="width:' + pct + '%;height:100%;background:' + rangeColors[label] + ';border-radius:4px;"></div>';
-        html += '<div style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:bold;color:#333;">' + cnt + '개 (' + pct + '%)</div>';
-        html += '</div></div>';
-    });
-    html += '</div>';
-    html += '<div style="font-size:12px;color:#555;margin-bottom:6px;font-weight:bold;">TOP 10 추천번호</div>';
-    sorted.slice(0, 10).forEach(function(entry) {
-        const num = entry[0], cnt = entry[1];
-        const pct = (cnt / maxFreq * 100).toFixed(0);
-        const isHot = analysis && analysis.hotNumbers && analysis.hotNumbers.includes(parseInt(num));
-        const bg = isHot ? '#ff6b6b' : '#667eea';
-        html += '<div style="display:flex;align-items:center;margin-bottom:5px;">';
-        html += '<div style="width:28px;text-align:right;font-size:12px;font-weight:bold;color:' + bg + ';margin-right:6px;">' + num + '</div>';
-        html += '<div style="flex:1;background:#eee;border-radius:4px;height:18px;overflow:hidden;position:relative;">';
-        html += '<div style="width:' + pct + '%;height:100%;background:' + bg + ';border-radius:4px;"></div>';
-        html += '<div style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:bold;color:#333;">' + cnt + '회' + (isHot?' [핫]':'') + '</div>';
-        html += '</div></div>';
-    });
-    el.innerHTML = html;
-    recLog('분포도 완료 (홀' + odd + '/짝' + even + ')');
-}
-
-function mergeRecToData() {
-    if (loadedRecData.length === 0) { alert('불러온 추천번호 없음'); return; }
-    recLog('CSV 병합 시작...');
-    let csv = '\uFEFF회차,번호1,번호2,번호3,번호4,번호5,번호6\n';
-    lottoData.forEach(function(d) {
-        csv += d.round + ',' + d.numbers.join(',') + '\n';
-    });
-    recLog('당첨데이터 ' + lottoData.length + '개 추가');
-    csv += '\n회차_추천,갱신,번호1,번호2,번호3,번호4,번호5,번호6\n';
-    loadedRecData.forEach(function(rec) {
-        csv += rec.round + ',' + rec.refresh + ',' + rec.numbers.join(',') + '\n';
-    });
-    recLog('추천번호 ' + loadedRecData.length + '개 추가');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = '당첨번호_추천포함.csv';
-    link.click();
-    const el = document.getElementById('mergeResult');
-    el.style.display = 'block';
-    el.innerHTML = '저장 완료! 당첨 ' + lottoData.length + '개 + 추천 ' + loadedRecData.length + '개';
-    recLog('CSV 저장 완료!');
-}
-
-
-//점수계산 함수
-  function calculateComboScore(combo) {
-
-    let score = 0;
-
-    combo.forEach(num => {
-
-        const stat = analysis.numberStats.find(s => s.number === num);
-
-        // ① 전체 출현 확률 점수
-        score += stat.count * 1.2;
-
-        // ② 최근 20회 출현 점수
-        score += stat.recentCount * 2;
-
-        // ③ 재등장 확률 (연속회차 출현 기반)
-        const reappear = lottoData.filter((d, i) => {
-            if (i === 0) return false;
-            return d.numbers.includes(num) && lottoData[i-1].numbers.includes(num);
-        }).length;
-
-        score += reappear * 3;
-
-        // ④ 최근 미출현 길이 보정
-        const missStreak = [...lottoData].reverse()
-            .findIndex(d => d.numbers.includes(num));
-
-        score += (missStreak < 5 ? 5 : 0);
-    });
-
-    // ⑤ 연속번호 패널티/보너스
-    const consec = countConsecutive(combo);
-    score += (consec === 1 ? 8 : 0);
-
-    // ⑥ AC값 보정
-    const ac = calculateAC(combo);
-    if (Math.abs(ac - analysis.mostCommonAC) <= 1) score += 10;
-
-    return score;
-}
-
- //20000회 생성 함수
-   function generate20000Combos() {
-
-    const candidates = [];
-    const limit = 5000;   // 🔥 20000 → 5000으로 최적화
-
-    for (let i = 0; i < limit; i++) {
-
-        const set = new Set();
-
-        while (set.size < 6) {
-            set.add(1 + Math.floor(Math.random() * 45));
-        }
-
-        const combo = Array.from(set).sort((a,b)=>a-b);
-        const key = combo.join(",");
-
-        if (!analysis.existingCombos.has(key)) {
-
-            const score = calculateComboScore(combo);
-
-            candidates.push({
-                numbers: combo,
-                score: score
-            });
-        }
-    }
-
-    candidates.sort((a,b)=>b.score - a.score);
-
-    return candidates.slice(0, 5);
-}
-
-//모니터링 로그 출력
-function monitorLog(msg) {
-    const el = document.getElementById('monitorLog');
-    const line = document.createElement('div');
-    line.textContent = '[' + new Date().toLocaleTimeString('ko-KR') + '] ' + msg;
-    el.appendChild(line);
-    el.scrollTop = el.scrollHeight;
-}
-
-//현재 조합 표시
-function monitorShowCombo(numbers) {
-    const el = document.getElementById('monitorCurrentCombo');
-    el.innerHTML = numbers.map(n =>
-        `<div style="width:32px;height:32px;border-radius:50%;
-        background:${n%2===0?'#00C49F':'#FF8042'};
-        display:flex;align-items:center;justify-content:center;
-        color:white;font-weight:bold;font-size:13px;">${n}</div>`
-    ).join('');
-}
-
-//50회 비동기 반복 엔진 (실시간 모니터링)
-async function runAdvancedEngine() {
-
-    const btn = document.getElementById('advancedBtn');
-    btn.disabled = true;
-    btn.innerHTML = '⏳ 분석 중...';
-
-    advancedPool = [];
-
-    // 모니터 초기화
-    const monitor = document.getElementById('advancedMonitor');
-    monitor.style.display = 'block';
-    document.getElementById('monitorLog').innerHTML = '';
-    document.getElementById('monitorRound').textContent = '0';
-    document.getElementById('monitorCandidates').textContent = '0';
-    document.getElementById('monitorBestScore').textContent = '-';
-    document.getElementById('monitorBar').style.width = '0%';
-    document.getElementById('monitorPercent').textContent = '0%';
-    document.getElementById('advancedResults').innerHTML = '';
-    document.getElementById('monitorCurrentCombo').innerHTML = '<span style="color:#555;font-size:12px;">분석 시작...</span>';
-
-    monitorLog('🚀 고급 분석 시작 (50회 × 5000개)');
-
-    const TOTAL = 50;
-
-    for (let round = 0; round < TOTAL; round++) {
-
-        // 매 회차마다 UI에 양보 (화면 업데이트 허용)
-        await new Promise(resolve => setTimeout(resolve, 0));
-
-        const percent = Math.round((round / TOTAL) * 100);
-        document.getElementById('monitorBar').style.width = percent + '%';
-        document.getElementById('monitorPercent').textContent = percent + '%';
-        document.getElementById('monitorRound').textContent = round + 1;
-
-        // 5000개 후보 생성
-        const candidates = [];
-        const limit = 5000;
-
-        for (let i = 0; i < limit; i++) {
-            const set = new Set();
-            while (set.size < 6) set.add(1 + Math.floor(Math.random() * 45));
-            const combo = Array.from(set).sort((a,b)=>a-b);
-            const key = combo.join(',');
-
-            if (!analysis.existingCombos.has(key)) {
-                const score = calculateComboScore(combo);
-                candidates.push({ numbers: combo, score });
-
-                // 매 500개마다 현재 분석 중인 조합 표시
-                if (i % 500 === 0) monitorShowCombo(combo);
-            }
-        }
-
-        candidates.sort((a,b) => b.score - a.score);
-        const top5 = candidates.slice(0, 5);
-        top5.forEach(c => advancedPool.push(c));
-
-        // 상태 업데이트
-        document.getElementById('monitorCandidates').textContent = advancedPool.length;
-
-        const bestScore = advancedPool.length > 0
-            ? Math.max(...advancedPool.map(c => c.score)).toFixed(1)
-            : '-';
-        document.getElementById('monitorBestScore').textContent = bestScore;
-
-        if ((round + 1) % 10 === 0) {
-            monitorLog(`✅ ${round + 1}회 완료 | 누적 후보: ${advancedPool.length}개 | 최고점: ${bestScore}`);
-        }
-    }
-
-    // 최종 정렬 및 TOP 5 추출
-    advancedPool.sort((a,b) => b.score - a.score);
-    finalTop5 = advancedPool.slice(0, 5);
-
-    // 완료 처리
-    document.getElementById('monitorBar').style.width = '100%';
-    document.getElementById('monitorPercent').textContent = '100%';
-    document.getElementById('monitorRound').textContent = '50';
-    document.getElementById('monitorCurrentCombo').innerHTML = '<span style="color:#00ff88;font-size:13px;">✅ 분석 완료!</span>';
-    monitorLog('🏆 최종 TOP 5 선정 완료! 아래에서 확인하세요.');
-
-    btn.disabled = false;
-    btn.innerHTML = '🔁 다시 분석';
-
-    displayFinalTop5();
-}
-
-//최종 표시 함수
-  function displayFinalTop5() {
-
-    const container = document.getElementById("advancedResults");
-    container.innerHTML = "";
-
-    finalTop5.forEach((rec, index) => {
-
-        const div = document.createElement("div");
-        div.className = "recommendation";
-
-        div.innerHTML = `
-            <div class="rec-header">
-                <div class="rec-title">
-                    ${index === 0 ? "👑 대표번호 (고급)" : "고급 추천"} #${index+1}
-                </div>
-                <div style="font-size:11px;color:#666;">
-                    SCORE: ${rec.score.toFixed(1)}
-                </div>
-            </div>
-            <div class="rec-numbers">
-                ${rec.numbers.map(n=>`
-                    <div class="lotto-ball ${n%2===0?'even':'odd'}">${n}</div>
-                `).join("")}
-            </div>
-        `;
-
-        container.appendChild(div);
-    });
-}
-
-// ══════════════════════════════════════
-//  반자동 탭 로직
-// ══════════════════════════════════════
-var semiTickets = [];   // [{manualNums:[...], autoNums:[...]}]
-
-// 게임 추가
-function addSemiTicket() {
-    if (semiTickets.length >= 5) {
-        alert('최대 5게임까지 추가할 수 있습니다.');
-        return;
-    }
-    semiTickets.push({ manualNums: [], autoNums: [] });
-    renderSemiTickets();
-}
-
-// 전체 초기화
-function clearAllTickets() {
-    semiTickets = [];
-    document.getElementById('semiResultPanel').style.display = 'none';
-    renderSemiTickets();
-}
-
-// 번호 토글 (수동 선택/해제)
-function toggleSemiNum(ticketIdx, num) {
-    var ticket = semiTickets[ticketIdx];
-    var pos = ticket.manualNums.indexOf(num);
-    if (pos >= 0) {
-        // 이미 선택 → 해제
-        ticket.manualNums.splice(pos, 1);
-    } else {
-        if (ticket.manualNums.length >= 5) {
-            alert('수동 번호는 최대 5개까지 선택 가능합니다.');
-            return;
-        }
-        ticket.manualNums.push(num);
-    }
-    ticket.autoNums = [];  // 자동 부분 초기화
-    renderSemiTickets();
-}
-
-// 자동 완성 (나머지 번호 채우기)
-function autoFillTicket(ticketIdx) {
-    var ticket = semiTickets[ticketIdx];
-    var needed = 6 - ticket.manualNums.length;
-    if (needed <= 0) return;
-
-    var pool = [];
-
-    if (analysis) {
-        // 통계 기반 풀 구성
-        // 핫넘버 가중치 2, 나머지 1
-        for (var i = 1; i <= 45; i++) {
-            if (ticket.manualNums.indexOf(i) < 0) {
-                pool.push(i);
-                if (analysis.hotNumbers && analysis.hotNumbers.indexOf(i) >= 0) {
-                    pool.push(i); // 핫넘버는 2배 확률
-                }
-            }
-        }
-    } else {
-        for (var i = 1; i <= 45; i++) {
-            if (ticket.manualNums.indexOf(i) < 0) pool.push(i);
-        }
-    }
-
-    // 셔플
-    for (var i = pool.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
-    }
-
-    var picked = [];
-    var seen = {};
-    for (var i = 0; i < pool.length && picked.length < needed; i++) {
-        if (!seen[pool[i]]) {
-            seen[pool[i]] = true;
-            picked.push(pool[i]);
-        }
-    }
-
-    ticket.autoNums = picked;
-    renderSemiTickets();
-    updateSemiResult();
-    document.getElementById('semiResultPanel').style.display = 'block';
-}
-
-// 자동 부분만 재생성
-function regenerateAuto() {
-    semiTickets.forEach(function(ticket, idx) {
-        if (ticket.manualNums.length > 0 || ticket.autoNums.length > 0) {
-            ticket.autoNums = [];
-            autoFillTicket(idx);
-        }
-    });
-}
-
-// 티켓 렌더링
-function renderSemiTickets() {
-    var container = document.getElementById('semiautoTickets');
-    container.innerHTML = '';
-
-    if (semiTickets.length === 0) {
-        container.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;font-size:14px;">+ 게임 추가 버튼을 눌러 시작하세요</div>';
-        return;
-    }
-
-    var labels = ['A','B','C','D','E'];
-
-    semiTickets.forEach(function(ticket, ticketIdx) {
-        var div = document.createElement('div');
-        div.className = 'lotto-ticket';
-
-        // 헤더
-        var selectedCount = ticket.manualNums.length;
-        var headerHtml = '<div class="ticket-header">' +
-            '<div class="ticket-label">' + labels[ticketIdx] + '</div>' +
-            '<div style="font-size:12px;color:#666;">' +
-                '<span class="manual-badge">수동 ' + selectedCount + '</span> ' +
-                '<span class="auto-badge">자동 ' + (6 - selectedCount) + '</span>' +
-            '</div>' +
-            '<button onclick="removeSemiTicket(' + ticketIdx + ')" style="background:none;border:none;color:#999;font-size:18px;cursor:pointer;padding:0 4px;">✕</button>' +
-        '</div>';
-
-        // 번호 그리드 (1~45)
-        var gridHtml = '<div class="ticket-grid">';
-        for (var n = 1; n <= 45; n++) {
-            var isManual = ticket.manualNums.indexOf(n) >= 0;
-            var isAuto   = ticket.autoNums.indexOf(n) >= 0;
-            var cls = 'ticket-num';
-            if (isManual) cls += ' selected-manual';
-            else if (isAuto) cls += ' selected-auto';
-
-            gridHtml += '<div class="' + cls + '" onclick="toggleSemiNum(' + ticketIdx + ',' + n + ')">' + n + '</div>';
-        }
-        gridHtml += '</div>';
-
-        // 하단: 자동 완성 버튼
-        var footerHtml = '<div class="ticket-footer" style="margin-top:10px;">' +
-            '<div style="font-size:11px;color:#999;">' +
-                (selectedCount === 0 ? '번호를 선택하거나 바로 자동 완성' :
-                 selectedCount === 6 ? '6개 선택 완료!' :
-                 (6 - selectedCount) + '개 자동 완성 대기') +
-            '</div>' +
-            '<button onclick="autoFillTicket(' + ticketIdx + ')" ' +
-                'style="padding:6px 14px;background:#667eea;color:white;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;">' +
-                (selectedCount === 6 ? '확정' : '자동 완성') +
-            '</button>' +
-        '</div>';
-
-        div.innerHTML = headerHtml + gridHtml + footerHtml;
-        container.appendChild(div);
-    });
-}
-
-// 티켓 삭제
-function removeSemiTicket(idx) {
-    semiTickets.splice(idx, 1);
-    renderSemiTickets();
-    updateSemiResult();
-    if (semiTickets.length === 0) {
-        document.getElementById('semiResultPanel').style.display = 'none';
-    }
-}
-
-// 결과 패널 업데이트
-function updateSemiResult() {
-    var list = document.getElementById('semiResultList');
-    var labels = ['A','B','C','D','E'];
-    var html = '';
-
-    semiTickets.forEach(function(ticket, i) {
-        var allNums = ticket.manualNums.concat(ticket.autoNums).sort(function(a,b){return a-b;});
-        if (allNums.length === 0) return;
-
-        html += '<div style="background:#f8f9fa;border-radius:10px;padding:12px;margin-bottom:10px;">';
-        html += '<div style="font-size:13px;font-weight:bold;color:#667eea;margin-bottom:8px;">' + labels[i] + '게임</div>';
-        html += '<div class="ticket-result">';
-
-        allNums.forEach(function(n) {
-            var isManual = ticket.manualNums.indexOf(n) >= 0;
-            html += '<div class="result-ball ' + (isManual ? 'ball-manual' : 'ball-auto') + '">' + n + '</div>';
-        });
-
-        if (allNums.length < 6) {
-            for (var k = allNums.length; k < 6; k++) {
-                html += '<div class="result-ball" style="background:#ddd;color:#999;">?</div>';
-            }
-        }
-
-        html += '</div>';
-        // 완성 여부 표시
-        if (allNums.length === 6) {
-            var sum = allNums.reduce(function(a,b){return a+b;}, 0);
-            var oddCnt = allNums.filter(function(n){return n%2===1;}).length;
-            html += '<div style="font-size:11px;color:#999;margin-top:6px;">' +
-                '합계: ' + sum + ' | 홀:' + oddCnt + ' 짝:' + (6-oddCnt) +
-                ' | <span style="color:#c00;">빨강=수동</span> <span style="color:#667eea;">파랑=자동</span>' +
-            '</div>';
-        }
-        html += '</div>';
-    });
-
-    if (html === '') {
-        html = '<div style="color:#aaa;text-align:center;padding:10px;">자동완성 버튼을 눌러주세요</div>';
-    }
-
-    list.innerHTML = html;
-}
-
-// ══════════════════════════════════════
-//  로컬스토리지 자동 저장/불러오기
-// ══════════════════════════════════════
-var LS_KEY = 'lotto645_data';
-
-// 데이터 저장
-function saveToLocalStorage() {
-    if (lottoData.length === 0) return;
-    try {
-        var payload = {
-            savedAt: new Date().toISOString(),
-            count: lottoData.length,
-            data: lottoData
-        };
-        localStorage.setItem(LS_KEY, JSON.stringify(payload));
-        showLSStatus('💾 자동저장 완료 (' + lottoData.length + '회차)', '#00C49F');
-    } catch(e) {
-        showLSStatus('⚠️ 저장 실패: ' + e.message, '#ff6b6b');
-    }
-}
-
-// 데이터 불러오기
-function loadFromLocalStorage() {
-    try {
-        var raw = localStorage.getItem(LS_KEY);
-        if (!raw) return false;
-        var payload = JSON.parse(raw);
-        if (!payload.data || payload.data.length === 0) return false;
-        lottoData = payload.data;
-        var savedAt = new Date(payload.savedAt).toLocaleString('ko-KR');
-        showLSStatus('📂 저장된 데이터 불러옴 (' + payload.count + '회차 · ' + savedAt + ')', '#667eea');
-        document.getElementById('importSuccess').innerHTML =
-            '✅ <strong>' + lottoData.length + '</strong>개 회차 로드 (로컬 저장소)';
-        document.getElementById('importSuccess').classList.remove('hidden');
-        var fileLabel = document.getElementById('fileLabel');
-        fileLabel.innerHTML = '✅ 저장된 데이터 있음';
-        fileLabel.style.background = '#00C49F';
-        analyzeData();
-        document.getElementById('tab-analysis').disabled = false;
-        document.getElementById('tab-recommend').disabled = false;
-        document.getElementById('tab-semiauto').disabled = false;
-        return true;
-    } catch(e) {
-        return false;
-    }
-}
-
-// 저장된 데이터 삭제
-function clearLocalStorage() {
-    if (!confirm('저장된 데이터를 삭제할까요?')) return;
-    localStorage.removeItem(LS_KEY);
-    showLSStatus('🗑️ 저장 데이터 삭제됨', '#ff6b6b');
-}
-
-// 상태 메시지 표시
-function showLSStatus(msg, color) {
-    var el = document.getElementById('lsStatus');
-    if (!el) return;
-    el.textContent = msg;
-    el.style.color = color || '#333';
-    el.style.display = 'block';
-    setTimeout(function() { el.style.display = 'none'; }, 4000);
-}
-
-// 페이지 로드 시 자동 불러오기
-window.addEventListener('load', function() {
-    var loaded = loadFromLocalStorage();
-    if (!loaded) {
-        showLSStatus('💡 저장된 데이터가 없습니다. CSV를 업로드해주세요.', '#888');
-    }
-});
-
-    </script>
+<script src="analysis.js"></script>
+<script src="recommend.js"></script>
+<script src="semiauto.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
