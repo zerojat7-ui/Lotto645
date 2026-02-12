@@ -14,3 +14,8 @@ ver 6.0
 
 ver 6.1
 고급 추천번호 생성시 느림 개선
+
+ver 6.2
+https://zerojat7-ui.github.io/LibraryJS/
+외부 링크를 통해 엔진 최적화
+엔진 가동상태 화면 표시
