@@ -121,7 +121,8 @@ function parseCSV(text) {
             var round = parseInt(v[0]);
             var nums  = v.slice(1,7).map(Number);
             if (!isNaN(round) && nums.every(function(n){return !isNaN(n)&&n>=1&&n<=45;})) {
-                lottoData.push({ round:round, numbers:nums });
+                var bonus = v.length >= 8 ? parseInt(v[7]) || 0 : 0;
+            lottoData.push({ round:round, numbers:nums, bonus:bonus });
             }
         }
     }
