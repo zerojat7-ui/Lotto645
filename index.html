@@ -124,40 +124,76 @@
 
     <hr style="margin:14px 0;border-color:#eee;">
 
-    <button class="btn btn-primary" id="advancedBtn" onclick="runAdvancedEngine()">🚀 고급 50회 분석 실행</button>
+    <button class="btn btn-primary" id="advancedBtn" onclick="runAdvancedEngine()">🚀 고급 분석 (큐브 ML 엔진)</button>
 
     <div id="advancedMonitor" style="display:none;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;">
-        <span>🔄 분석 진행 중...</span>
-        <span id="monitorPercent" style="font-weight:bold;color:#00ff88;">0%</span>
+
+      <!-- 단계 표시 -->
+      <div id="monitorPhaseRow" style="display:flex;gap:6px;margin-bottom:10px;font-size:11px;">
+        <div id="phaseML"  class="phase-badge phase-wait">① ML모델</div>
+        <div style="color:#555;line-height:24px;">→</div>
+        <div id="phaseEVO" class="phase-badge phase-wait">② 큐브진화</div>
+        <div style="color:#555;line-height:24px;">→</div>
+        <div id="phasePOOL" class="phase-badge phase-wait">③ 조합생성</div>
+        <div style="color:#555;line-height:24px;">→</div>
+        <div id="phaseDONE" class="phase-badge phase-wait">④ 완료</div>
       </div>
-      <div style="background:#333;border-radius:8px;height:16px;overflow:hidden;margin-bottom:12px;">
-        <div id="monitorBar" style="height:100%;width:0%;background:linear-gradient(90deg,#667eea,#00ff88);transition:width 0.3s;border-radius:8px;"></div>
+      <style>
+        .phase-badge{padding:3px 8px;border-radius:20px;font-weight:bold;transition:all 0.3s;}
+        .phase-wait{background:#2a2a3e;color:#555;}
+        .phase-active{background:#667eea;color:white;animation:pulseBadge 1s infinite;}
+        .phase-done{background:#00C49F;color:white;}
+        @keyframes pulseBadge{0%,100%{opacity:1;}50%{opacity:0.6;}}
+      </style>
+
+      <!-- 메인 진행바 -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+        <span id="monitorPhaseText" style="font-size:12px;color:#aaa;">준비 중...</span>
+        <span id="monitorPercent" style="font-weight:bold;color:#00ff88;font-size:14px;">0%</span>
       </div>
+      <div style="background:#333;border-radius:8px;height:18px;overflow:hidden;margin-bottom:4px;position:relative;">
+        <div id="monitorBar" style="height:100%;width:0%;background:linear-gradient(90deg,#667eea,#00ff88);transition:width 0.4s;border-radius:8px;"></div>
+        <div id="monitorBarStripe" style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(255,255,255,0.05) 8px,rgba(255,255,255,0.05) 16px);border-radius:8px;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#666;margin-bottom:10px;">
+        <span id="monitorElapsed">경과: 0s</span>
+        <span id="monitorETA">남은 시간: 계산 중...</span>
+      </div>
+
+      <!-- 상태 카드 3개 -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;text-align:center;">
         <div style="background:#16213e;border-radius:8px;padding:10px;">
-          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">진행</div>
-          <div id="monitorRound" style="font-size:20px;font-weight:bold;color:#667eea;">0</div>
-          <div style="font-size:10px;color:#666;">/ 50</div>
+          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">라운드</div>
+          <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;">
+            <div id="monitorRound" style="font-size:20px;font-weight:bold;color:#667eea;">0</div>
+            <div id="monitorRoundTotal" style="font-size:10px;color:#555;">/ 50</div>
+          </div>
         </div>
         <div style="background:#16213e;border-radius:8px;padding:10px;">
-          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">후보</div>
+          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">후보 조합</div>
           <div id="monitorCandidates" style="font-size:20px;font-weight:bold;color:#ffd700;">0</div>
         </div>
         <div style="background:#16213e;border-radius:8px;padding:10px;">
-          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">최고점</div>
-          <div id="monitorBestScore" style="font-size:20px;font-weight:bold;color:#ff6b6b;">-</div>
+          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">최고 점수</div>
+          <div id="monitorBestScore" style="font-size:18px;font-weight:bold;color:#ff6b6b;">-</div>
         </div>
       </div>
+
+      <!-- 현재 조합 -->
       <div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:8px;">
-        <div style="font-size:10px;color:#aaa;margin-bottom:5px;">🎲 현재 조합</div>
+        <div style="font-size:10px;color:#aaa;margin-bottom:6px;">🎲 현재 탐색 조합</div>
         <div id="monitorCurrentCombo" style="display:flex;gap:5px;justify-content:center;min-height:32px;align-items:center;">
           <span style="color:#555;font-size:12px;">대기 중...</span>
         </div>
       </div>
+
+      <!-- 실시간 로그 -->
       <div style="background:#0d1117;border-radius:8px;padding:10px;">
-        <div style="font-size:10px;color:#aaa;margin-bottom:4px;">📋 로그</div>
-        <div id="monitorLog" style="font-size:11px;font-family:monospace;color:#00ff88;max-height:80px;overflow-y:auto;line-height:1.8;"></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:10px;color:#aaa;">📋 실시간 로그</span>
+          <span id="monitorLogCount" style="font-size:10px;color:#555;">0개</span>
+        </div>
+        <div id="monitorLog" style="font-size:11px;font-family:monospace;color:#00ff88;max-height:100px;overflow-y:auto;line-height:1.9;"></div>
       </div>
     </div>
 
@@ -225,6 +261,7 @@
   </div>
 </div>
 
+<script src="https://zerojat7-ui.github.io/LibraryJS/cube-engine.js"></script>
 <script src="analysis.js"></script>
 <script src="recommend.js"></script>
 <script src="semiauto.js"></script>

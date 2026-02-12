@@ -1,77 +1,18 @@
 // ══════════════════════════════════════════
-//  recommend.js  — 추천 엔진 (큐브 ML 통합)
+//  recommend.js  — CubeEngine 외부 라이브러리 연동
+//  https://zerojat7-ui.github.io/LibraryJS/cube-engine.js
 // ══════════════════════════════════════════
 var refreshCounter = 0;
 var recommendationHistory = [];
 var currentRecommendations = [];
-var advancedPool = [];
 var finalTop5 = [];
 var loadedRecData = [];
+var engineStartTime = 0;
+var logCount = 0;
 
-// ────────────────────────────
-//  큐브 ML 엔진 설정
-// ────────────────────────────
-var CUBE_LAMBDA      = 0.18;
-var CUBE_LR          = 0.05;
-var CUBE_EVOLVE_TIME = 50;    // ms (모바일 배려, 원본 4000)
-var CUBE_LOOP_MIN    = 5000;  // 원본 80000
-
-function cubeBase(x) { return Math.sin(x) + Math.cos(x / 2); }
-function cubeSigmoid(x) { return 1 / (1 + Math.exp(-x)); }
-
-function buildMLProbabilities(pastDraws) {
-    var scores = [];
-    for (var i = 0; i < 45; i++) scores.push(cubeBase(i + 1));
-    var total = pastDraws.length;
-    pastDraws.forEach(function(draw, index) {
-        var w = Math.exp(-CUBE_LAMBDA * (total - index - 1));
-        draw.forEach(function(n) { scores[n-1] += w; });
-    });
-    pastDraws.forEach(function(draw) {
-        for (var i = 0; i < 45; i++) {
-            var predicted = cubeSigmoid(scores[i]);
-            var actual = draw.indexOf(i+1) >= 0 ? 1 : 0;
-            scores[i] += CUBE_LR * (actual - predicted);
-        }
-    });
-    var probs = scores.map(cubeSigmoid);
-    var avg = probs.reduce(function(a,b){return a+b;}, 0) / 45;
-    var scale = (7/45) / avg;
-    return probs.map(function(p){ return Math.min(p * scale, 1); });
-}
-
-async function evolveHybridCube(num, initialProb) {
-    var adaptiveProb = initialProb, score = 0, success = 0, total = 0;
-    var start = performance.now();
-    while (performance.now() - start < CUBE_EVOLVE_TIME || total < CUBE_LOOP_MIN) {
-        total++;
-        if (Math.random() < adaptiveProb) { success++; score++; }
-        if (total % 1000 === 0) {
-            var diff = initialProb - success / total;
-            adaptiveProb = Math.min(Math.max(adaptiveProb + diff * 0.1, 0.03), 0.4);
-        }
-    }
-    return { num: num, score: score };
-}
-
-function isTooSimilar(picked, history, threshold) {
-
-monitorLog('⚖️ 6개의 큐브 검증 중….');
-
-    threshold = threshold || 5;
-    for (var i = 0; i < history.length; i++) {
-        var match = 0;
-        for (var j = 0; j < picked.length; j++) {
-            if (history[i].indexOf(picked[j]) >= 0) match++;
-        }
-        if (match >= threshold) return true;
-    }
-    return false;
-}
-
-// ────────────────────────────
-//  기본 점수 계산
-// ────────────────────────────
+// ────────────────────────────────────
+//  기본 점수 계산 (기존 앱 점수 시스템)
+// ────────────────────────────────────
 function calculateComboScore(combo) {
     var score = 0;
     combo.forEach(function(num) {
@@ -94,9 +35,9 @@ function calculateComboScore(combo) {
     return score;
 }
 
-// ────────────────────────────
+// ────────────────────────────────────
 //  기본 추천 생성
-// ────────────────────────────
+// ────────────────────────────────────
 function generateRecommendations() {
     refreshCounter++;
     document.getElementById('refreshCount').textContent = refreshCounter;
@@ -147,114 +88,191 @@ function displayRecommendations(recs) {
 
 function refreshRecommendations() { generateRecommendations(); }
 
-// ────────────────────────────
-//  모니터 유틸
-// ────────────────────────────
-function monitorLog(msg) {
+// ────────────────────────────────────
+//  모니터 UI 헬퍼
+// ────────────────────────────────────
+function mLog(msg, color) {
     var el = document.getElementById('monitorLog');
     var d = document.createElement('div');
+    d.style.color = color || '#00ff88';
     d.textContent = '['+new Date().toLocaleTimeString('ko-KR')+'] '+msg;
-    el.appendChild(d); el.scrollTop = el.scrollHeight;
+    el.appendChild(d);
+    el.scrollTop = el.scrollHeight;
+    logCount++;
+    var countEl = document.getElementById('monitorLogCount');
+    if (countEl) countEl.textContent = logCount + '개';
 }
-function monitorShowCombo(nums) {
+
+function setPhase(phase) {
+    // phase: 'ml' | 'evo' | 'pool' | 'done'
+    var map = { ml:'phaseML', evo:'phaseEVO', pool:'phasePOOL', done:'phaseDONE' };
+    var order = ['ml','evo','pool','done'];
+    var idx = order.indexOf(phase);
+    order.forEach(function(p, i) {
+        var el = document.getElementById(map[p]);
+        if (!el) return;
+        el.className = 'phase-badge ' + (i < idx ? 'phase-done' : i === idx ? 'phase-active' : 'phase-wait');
+    });
+}
+
+function updateElapsed() {
+    var el = document.getElementById('monitorElapsed');
+    if (el && engineStartTime) el.textContent = '경과: ' + ((performance.now()-engineStartTime)/1000).toFixed(1) + 's';
+}
+
+function mShowCombo(nums) {
     document.getElementById('monitorCurrentCombo').innerHTML = nums.map(function(n){
         return '<div style="width:30px;height:30px;border-radius:50%;background:'+(n%2===0?'#00C49F':'#FF8042')+
                ';display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:12px;">'+n+'</div>';
     }).join('');
 }
 
-// ────────────────────────────
-//  고급 엔진: 큐브 ML × 5000개
-// ────────────────────────────
+// ────────────────────────────────────
+//  고급 엔진: CubeEngine 외부 라이브러리 사용
+// ────────────────────────────────────
 async function runAdvancedEngine() {
+    // CubeEngine 라이브러리 확인
+    if (typeof CubeEngine === 'undefined') {
+        alert('CubeEngine 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.\n\n(cube-engine.js 로드 실패 시 네트워크 확인)');
+        return;
+    }
+
     var btn = document.getElementById('advancedBtn');
-    btn.disabled = true; btn.innerHTML = '⏳ 분석 중...';
-    advancedPool = [];
+    btn.disabled = true;
+    btn.innerHTML = '⏳ 분석 중...';
+    finalTop5 = [];
+    logCount = 0;
+    engineStartTime = performance.now();
+
+    // 모니터 초기화
     var monitor = document.getElementById('advancedMonitor');
     monitor.style.display = 'block';
-    ['monitorLog','advancedResults'].forEach(function(id){ document.getElementById(id).innerHTML=''; });
-    document.getElementById('monitorRound').textContent='0';
-    document.getElementById('monitorCandidates').textContent='0';
-    document.getElementById('monitorBestScore').textContent='-';
-    document.getElementById('monitorBar').style.width='0%';
-    document.getElementById('monitorPercent').textContent='0%';
-    document.getElementById('monitorCurrentCombo').innerHTML='<span style="color:#555;font-size:12px;">시작...</span>';
+    document.getElementById('advancedResults').innerHTML = '';
+    document.getElementById('monitorLog').innerHTML = '';
+    document.getElementById('monitorLogCount').textContent = '0개';
+    document.getElementById('monitorRound').textContent = '0';
+    document.getElementById('monitorRoundTotal').textContent = '/ 50';
+    document.getElementById('monitorCandidates').textContent = '0';
+    document.getElementById('monitorBestScore').textContent = '-';
+    document.getElementById('monitorBar').style.width = '0%';
+    document.getElementById('monitorPercent').textContent = '0%';
+    document.getElementById('monitorPhaseText').textContent = '준비 중...';
+    document.getElementById('monitorCurrentCombo').innerHTML = '<span style="color:#555;font-size:12px;">대기 중...</span>';
+    document.getElementById('monitorETA').textContent = '남은 시간: 계산 중...';
+    setPhase('ml');
+
+    // 경과 시간 인터벌
+    var elapsedInterval = setInterval(updateElapsed, 500);
 
     // 과거 당첨번호 배열
     var historyNums = lottoData.map(function(d){ return d.numbers; });
+    var totalRounds = 50;
 
-    monitorLog('🧠 ML 확률 모델 계산 중...');
-    var mlProbs = buildMLProbabilities(historyNums);
-    monitorLog('✅ ML 확률 완료 (lambda='+CUBE_LAMBDA+', lr='+CUBE_LR+')');
-    monitorLog('🚀 큐브 진화 × 50라운드 × 5000개 시작');
+    mLog('🧠 CubeEngine v'+CubeEngine.version+' 시작');
+    mLog('📊 데이터: '+historyNums.length+'회차 학습');
 
-    for (var round = 0; round < 50; round++) {
-        await new Promise(function(r){ setTimeout(r, 0); });
-        var pct = Math.round(round / 50 * 100);
-        document.getElementById('monitorBar').style.width = pct + '%';
-        document.getElementById('monitorPercent').textContent = pct + '%';
-        document.getElementById('monitorRound').textContent = round + 1;
+    try {
+        var result = await CubeEngine.generate(
+            CubeEngine.withPreset('lotto645', {
+                history  : historyNums,
+                topN     : 5,
+                rounds   : totalRounds,
 
-        // 큐브 진화: 45개 번호 동시 진화
-        var cubeRes = await Promise.all(
-            Array.from({length:45}, function(_, i){ return evolveHybridCube(i+1, mlProbs[i]); })
+                onProgress: function(percent, stats) {
+                    document.getElementById('monitorBar').style.width = percent + '%';
+                    document.getElementById('monitorPercent').textContent = percent + '%';
+
+                    if (stats.phase === 'ml') {
+                        setPhase('ml');
+                        document.getElementById('monitorPhaseText').textContent = '① ML 확률 모델 계산 중...';
+                        mLog('🧠 ML 모델 학습 시작 (lambda=0.18)');
+                    }
+                    if (stats.phase === 'ml_done') {
+                        setPhase('evo');
+                        document.getElementById('monitorPhaseText').textContent = '② 큐브 진화 준비...';
+                        mLog('✅ ML 완료 → 큐브 진화 시작');
+                    }
+                    if (stats.phase === 'evolving') {
+                        setPhase('pool');
+                        document.getElementById('monitorRound').textContent = stats.round;
+                        document.getElementById('monitorRoundTotal').textContent = '/ ' + stats.totalRounds;
+                        document.getElementById('monitorCandidates').textContent = stats.poolSize;
+                        document.getElementById('monitorPhaseText').textContent =
+                            '③ 라운드 '+stats.round+'/'+stats.totalRounds+' — 조합 탐색 중';
+
+                        if (stats.bestScore > 0)
+                            document.getElementById('monitorBestScore').textContent = stats.bestScore.toFixed(1);
+
+                        // ETA 계산
+                        if (stats.round > 1 && stats.elapsed > 0) {
+                            var perRound = stats.elapsed / stats.round;
+                            var remaining = Math.round(perRound * (stats.totalRounds - stats.round) / 1000);
+                            document.getElementById('monitorETA').textContent =
+                                '남은 시간: 약 ' + remaining + '초';
+                        }
+                    }
+                    if (stats.phase === 'done') {
+                        setPhase('done');
+                        document.getElementById('monitorPhaseText').textContent = '④ 완료!';
+                        document.getElementById('monitorETA').textContent = '완료 ✅';
+                    }
+                },
+
+                onRound: function(roundNum, bestScore) {
+                    // 현재 조합 시각화 (분산 표현)
+                    var sampleCombo = [];
+                    var used = new Set();
+                    while (sampleCombo.length < 6) {
+                        var n = 1 + Math.floor(Math.random() * 45);
+                        if (!used.has(n)) { used.add(n); sampleCombo.push(n); }
+                    }
+                    mShowCombo(sampleCombo.sort(function(a,b){return a-b;}));
+
+                    if (roundNum % 10 === 0) {
+                        mLog('✅ '+roundNum+'/'+totalRounds+' 라운드 | 최고: '+bestScore.toFixed(1));
+                    }
+                }
+            })
         );
-        cubeRes.sort(function(a,b){ return b.score - a.score; });
-        var topNums = cubeRes.map(function(r){ return r.num; });
 
-        // 5000개 조합 생성
-        var candidates = [];
-        for (var i = 0; i < 5000; i++) {
-            var combo = new Set();
-            // 상위 번호 2~3개 반드시 포함
-            var must = 2 + Math.floor(Math.random() * 2);
-            for (var m = 0; m < must && combo.size < 6; m++)
-                combo.add(topNums[Math.floor(Math.random() * 15)]);
-            // ML 확률 기반 나머지 채우기
-            var att = 0;
-            while (combo.size < 6 && att++ < 200) {
-                var idx = Math.floor(Math.random() * 45);
-                if (Math.random() < mlProbs[idx] * 3) combo.add(idx + 1);
-            }
-            while (combo.size < 6) combo.add(1 + Math.floor(Math.random() * 45));
-            var arr = Array.from(combo).sort(function(a,b){return a-b;});
-            if (!analysis.existingCombos.has(arr.join(',')) && !isTooSimilar(arr, historyNums, 5))
-                candidates.push({ numbers:arr, score:calculateComboScore(arr) });
-            if (i % 500 === 0) monitorShowCombo(arr);
-        }
-        candidates.sort(function(a,b){ return b.score - a.score; });
-        candidates.slice(0, 5).forEach(function(c){ advancedPool.push(c); });
+        // 완료
+        clearInterval(elapsedInterval);
+        updateElapsed();
 
-        document.getElementById('monitorCandidates').textContent = advancedPool.length;
-        if (advancedPool.length > 0) {
-            var best = advancedPool.reduce(function(mx,c){ return c.score>mx?c.score:mx; }, 0);
-            document.getElementById('monitorBestScore').textContent = best.toFixed(1);
-        }
-        if ((round+1) % 10 === 0)
-            monitorLog('✅ '+(round+1)+'회 | 누적:'+advancedPool.length+' | 최고:'+
-                (advancedPool.length?advancedPool.reduce(function(mx,c){return c.score>mx?c.score:mx;},0).toFixed(1):'-'));
+        finalTop5 = result.results.map(function(nums, i) {
+            return { numbers: nums, score: result.scores[i] };
+        });
+
+        document.getElementById('monitorCurrentCombo').innerHTML =
+            '<span style="color:#00ff88;font-size:14px;font-weight:bold;">✅ TOP 5 선정 완료!</span>';
+
+        mLog('🏆 완료! 소요: '+(result.meta.elapsed/1000).toFixed(1)+'s | 데이터: '+result.meta.historySize+'회차');
+        mLog('📦 최고점: '+result.scores[0].toFixed(1)+' | 라이브러리: CubeEngine v'+CubeEngine.version, '#ffd700');
+
+        btn.disabled = false;
+        btn.innerHTML = '🔁 다시 분석';
+        displayFinalTop5(result);
+
+    } catch(e) {
+        clearInterval(elapsedInterval);
+        mLog('❌ 오류: ' + e.message, '#ff6b6b');
+        document.getElementById('monitorPhaseText').textContent = '오류 발생';
+        btn.disabled = false;
+        btn.innerHTML = '🔁 다시 시도';
     }
-
-    advancedPool.sort(function(a,b){ return b.score-a.score; });
-    finalTop5 = advancedPool.slice(0, 5);
-    document.getElementById('monitorBar').style.width = '100%';
-    document.getElementById('monitorPercent').textContent = '100%';
-    document.getElementById('monitorCurrentCombo').innerHTML = '<span style="color:#00ff88;font-size:14px;">✅ 완료!</span>';
-    monitorLog('🏆 큐브 ML TOP 5 선정 완료!');
-    btn.disabled = false; btn.innerHTML = '🔁 다시 분석';
-    displayFinalTop5();
 }
 
-function displayFinalTop5() {
+function displayFinalTop5(result) {
     var c = document.getElementById('advancedResults');
+    var elapsed = result ? (result.meta.elapsed/1000).toFixed(1) : '-';
     c.innerHTML = '<div style="background:#1a1a2e;border-radius:10px;padding:12px;margin-bottom:12px;color:white;">'+
-        '<div style="color:#00ff88;font-size:13px;font-weight:bold;margin-bottom:3px;">🧠 큐브 ML 엔진 결과</div>'+
-        '<div style="color:#aaa;font-size:11px;">ML확률모델 × 큐브진화 × 5000개 × 50라운드</div></div>';
+        '<div style="color:#00ff88;font-size:13px;font-weight:bold;margin-bottom:3px;">🧠 CubeEngine ML 결과</div>'+
+        '<div style="color:#aaa;font-size:11px;">ML확률모델 × 큐브진화 × 5000개 × 50라운드 | 소요: '+elapsed+'s</div></div>';
     finalTop5.forEach(function(rec, idx) {
         var d = document.createElement('div');
         d.className = 'recommendation';
         d.innerHTML = '<div class="rec-header">'+
-            '<div class="rec-title">'+(idx===0?'👑 대표':'🎯 추천 #'+(idx+1))+'</div>'+
+            '<div class="rec-title">'+(idx===0?'👑 대표':'🎯 #'+(idx+1))+'</div>'+
             '<div style="font-size:11px;color:#666;">SCORE: '+rec.score.toFixed(1)+'</div></div>'+
             '<div class="rec-numbers">'+rec.numbers.map(function(n){
                 return '<div class="lotto-ball '+(n%2===0?'even':'odd')+'">'+n+'</div>';
@@ -263,9 +281,9 @@ function displayFinalTop5() {
     });
 }
 
-// ────────────────────────────
+// ────────────────────────────────────
 //  추천번호 불러오기
-// ────────────────────────────
+// ────────────────────────────────────
 function recLog(msg, color) {
     var el=document.getElementById('recProcessLog'), d=document.createElement('div');
     d.style.color=color||'#00ff88';
@@ -284,7 +302,7 @@ function loadRecommendations(event) {
     reader.onload=function(e){
         var lines=e.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n');
         recLog('총 '+lines.length+'줄');
-        var parsed=0, skipped=0;
+        var parsed=0,skipped=0;
         lines.slice(1).forEach(function(line){
             var p=line.split(',').map(function(v){return v.trim();});
             if(p.length<8){skipped++;return;}
@@ -305,7 +323,7 @@ function loadRecommendations(event) {
             var el=document.getElementById('recResult'); el.style.display='block';
             var rows='';
             for(var k=6;k>=0;k--){if(matchDetail[k]>0){var lbl=k===6?'1등':k===5?'2/3등':k===4?'4등':k===3?'5등':(k+'개 일치');rows+='<div class="analysis-item"><span class="analysis-label">'+lbl+'</span><span class="analysis-value">'+matchDetail[k]+'회</span></div>';}}
-            el.innerHTML='<div class="analysis-title">🏆 적중률</div><div class="analysis-item"><span class="analysis-label">총 비교</span><span class="analysis-value">'+total+'개</span></div><div class="analysis-item"><span class="analysis-label">평균 적중률</span><span class="analysis-value">'+rate+'%</span></div>'+rows;
+            el.innerHTML='<div class="analysis-title">🏆 적중률</div><div class="analysis-item"><span class="analysis-label">총 비교</span><span class="analysis-value">'+total+'개</span></div><div class="analysis-item"><span class="analysis-label">평균</span><span class="analysis-value">'+rate+'%</span></div>'+rows;
         }
         analyzeRecDuplication(); analyzeRecDistribution();
         recLog('✅ 완료!');
@@ -326,7 +344,7 @@ function analyzeRecDuplication() {
     }
     pairs.sort(function(a,b){return b.count-a.count;});
     var html=dups.length>0?'<div style="background:#ffebee;border-radius:8px;padding:10px;margin-bottom:8px;"><div style="font-weight:bold;color:#c62828;">🚨 완전중복 '+dups.length+'건</div>'+dups.map(function(d){return '<div style="font-size:12px;color:#c62828;">['+d[0]+'] '+d[1].length+'회</div>';}).join('')+'</div>':'<div style="background:#e8f5e9;border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px;color:#2e7d32;">✅ 완전 중복 없음</div>';
-    if(pairs.length>0){html+='<div style="font-size:13px;font-weight:bold;color:#e65100;margin-bottom:6px;">3개 이상 겹침 ('+pairs.length+'쌍)</div>';pairs.slice(0,8).forEach(function(p){html+='<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap;"><span style="font-size:12px;color:#666;">조합'+p.i+' vs 조합'+p.j+':</span>'+p.shared.map(function(n){return '<div style="width:24px;height:24px;border-radius:50%;background:#ff8042;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;">'+n+'</div>';}).join('')+'</div>';});}
+    if(pairs.length>0){html+='<div style="font-size:13px;font-weight:bold;color:#e65100;margin-bottom:6px;">3개 이상 겹침 ('+pairs.length+'쌍)</div>';pairs.slice(0,8).forEach(function(p){html+='<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap;"><span style="font-size:12px;color:#666;">조합'+p.i+' vs '+p.j+':</span>'+p.shared.map(function(n){return '<div style="width:24px;height:24px;border-radius:50%;background:#ff8042;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;">'+n+'</div>';}).join('')+'</div>';});}
     else html+='<div style="font-size:13px;color:#2e7d32;">✅ 겹침 없음</div>';
     html+='<div style="font-size:12px;color:#999;margin-top:5px;">최대 겹침:'+maxOv+'개</div>';
     el.innerHTML=html;
