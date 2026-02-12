@@ -13,8 +13,8 @@ var loadedRecData = [];
 // ────────────────────────────
 var CUBE_LAMBDA      = 0.18;
 var CUBE_LR          = 0.05;
-var CUBE_EVOLVE_TIME = 800;    // ms (모바일 배려, 원본 4000)
-var CUBE_LOOP_MIN    = 30000;  // 원본 80000
+var CUBE_EVOLVE_TIME = 100;    // ms (모바일 배려, 원본 4000)
+var CUBE_LOOP_MIN    = 10000;  // 원본 80000
 
 function cubeBase(x) { return Math.sin(x) + Math.cos(x / 2); }
 function cubeSigmoid(x) { return 1 / (1 + Math.exp(-x)); }
@@ -55,6 +55,9 @@ async function evolveHybridCube(num, initialProb) {
 }
 
 function isTooSimilar(picked, history, threshold) {
+
+monitorLog('⚖️ 6개의 큐브 검증 중….');
+
     threshold = threshold || 5;
     for (var i = 0; i < history.length; i++) {
         var match = 0;
