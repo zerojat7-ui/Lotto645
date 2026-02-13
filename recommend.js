@@ -181,7 +181,7 @@ async function runAdvancedEngine() {
         loopMin: isMobile ? 3000 : 30000,
 
         // 🎲 후보 조합 개수
-        poolSize: isMobile ? 1500 : 5000,
+        poolSize: isMobile ? 500 : 5000,
 
         topN: 5,
 
@@ -247,7 +247,7 @@ async function runAdvancedEngine() {
         onRound: function(roundNum) {
 
             // 모바일은 2라운드마다 갱신 (DOM 부담 감소)
-            if (!isMobile || roundNum % 2 === 0) {
+            if (!isMobile || roundNum % 1 === 0) {
 
                 var sample = [];
                 var used = new Set();
