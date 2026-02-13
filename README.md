@@ -32,3 +32,6 @@ https://zerojat7-ui.github.io/LibraryJS/
 ## ver 7.0.0
 UI 전면 교체 데이터 업로드와 메인 페이지 분리
 
+## ver 7.1.0
+data loading error 수정
+
