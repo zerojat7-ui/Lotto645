@@ -31,7 +31,7 @@
     <button class="tab active" onclick="switchTab('analysis',this)">📊 분석</button>
     <button class="tab"        onclick="switchTab('recommend',this)">🎯 추천</button>
     <button class="tab"        onclick="switchTab('semiauto',this)">✏️ 반자동</button>
-    <button class="tab"        onclick="switchTab('history',this)">📋 기록</button>
+    <button class="tab"        onclick="switchTab('records',this)">📋 기록</button>
   </div>
 
   <!-- ▶ 분석 탭 -->
@@ -137,7 +137,7 @@
 <!-- 기본 추천 + 갱신/저장 버튼 -->
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
   <button class="btn btn-primary"   style="margin:0;" onclick="refreshRecommendations()">🔄 갱신</button>
-  <button class="btn btn-save"      style="margin:0;" id="recSaveBtn" onclick="saveSelectedRec()" disabled>💾 저장</button>
+  <button class="btn btn-save"      style="margin:0;" id="recSaveBtn" onclick="saveSelectedRecs()" disabled>💾 저장</button>
 </div>
 
 <!-- 추천 번호 목록 (선택 가능) -->
@@ -172,9 +172,9 @@
 
   <!-- ▶ 기록 탭 -->
 
-  <div id="content-history" class="content hidden">
+  <div id="content-records" class="content hidden">
     <div class="section-title">📋 나의 추천 기록</div>
-    <div id="historyList">
+    <div id="recordsList">
       <div style="text-align:center;color:#aaa;padding:20px;font-size:13px;">기록이 없습니다</div>
     </div>
   </div>
