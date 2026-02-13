@@ -174,7 +174,7 @@ async function runAdvancedEngine() {
         rounds: 50,
 
         // ⏱ 라운드당 계산 시간 (모바일 줄임)
-        evolveTime: isMobile ? 180 : 800,
+        evolveTime: isMobile ? 50 : 800,
 
         // 🔥 가장 큰 병목 (중요!)
         // 30000 → 5000 → 3000 으로 대폭 감소
