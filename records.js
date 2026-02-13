@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════
-//  records.js  - 예측 기록 저장/조회
+//  records.js  — 예측 기록 저장/조회
 //  forecastNum.json 규격:
 //  { ip, date, type, round, numbers:[n1..n6], seq }
 // ══════════════════════════════════════════
@@ -36,6 +36,11 @@ function saveForecast(opts) {
         };
         records.push(entry);
         saveForecastData(records);
+        // 기록탭이 열려있으면 즉시 갱신
+        var recContent = document.getElementById('content-records');
+        if (recContent && !recContent.classList.contains('hidden')) {
+            renderRecords();
+        }
     });
 }
 
