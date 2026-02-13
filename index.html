@@ -1,31 +1,26 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>로또 6/45 분석</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>로또 6/45</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="container">
 
   <div class="header">
-    <h1>🎰 로또 6/45 분석</h1>
-    <p>고급 패턴 분석 &amp; AI 추천</p>
+    <h1>🎰 로또 6/45</h1>
+    <div id="headerInfo" style="font-size:12px;color:#888;margin-top:4px;">데이터 로딩 중...</div>
+    <div id="latestDraw" style="display:none;margin-top:10px;padding:10px;background:#f8f9fa;border-radius:10px;">
+      <div style="font-size:11px;color:#888;margin-bottom:6px;" id="latestRoundLabel">최신 회차</div>
+      <div id="latestBalls" style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;"></div>
+    </div>
   </div>
 
-  <div class="tabs">
-    <button class="tab active"  onclick="switchTab('data',this)">📥 데이터</button>
-    <button class="tab" id="tab-analysis"  onclick="switchTab('analysis',this)"  disabled>📊 분석</button>
-    <button class="tab" id="tab-recommend" onclick="switchTab('recommend',this)" disabled>🎯 추천</button>
-    <button class="tab" id="tab-semiauto"  onclick="switchTab('semiauto',this)"  disabled>✏️ 반자동</button>
-  </div>
-
-  <!-- ▶ 데이터 탭 -->
-  <div id="content-data" class="content">
-    <div class="section-title">데이터 관리</div>
-
+  <div class="content">
+    <div class="section-title">📥 데이터 관리</div>
     <div class="ls-bar">
       <div class="ls-bar-title">💾 브라우저 자동저장</div>
       <div id="lsStatus">확인 중...</div>
@@ -34,8 +29,6 @@
         <button class="ls-del"  onclick="clearLS()">🗑️</button>
       </div>
     </div>
-
-    <!-- 새 회차 입력 -->
     <div class="analysis-section">
       <div class="analysis-title">➕ 새 회차 입력</div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
@@ -53,203 +46,25 @@
       </div>
       <button class="btn btn-primary" onclick="addNewDraw()">✅ 저장</button>
     </div>
-
-    <!-- CSV 업로드 -->
     <div class="analysis-section">
       <div class="analysis-title">📁 CSV 업로드 (백업용)</div>
-      <label for="csvFile" id="fileLabel"
-        style="display:block;padding:13px;background:#8884D8;color:white;border-radius:10px;text-align:center;cursor:pointer;font-weight:bold;margin-bottom:4px;">
+      <label for="csvFile" style="display:block;padding:13px;background:#8884D8;color:white;border-radius:10px;text-align:center;cursor:pointer;font-weight:bold;margin-bottom:4px;">
         📄 당첨번호.csv 선택
       </label>
       <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleFileUpload(event)">
     </div>
-
     <div id="importSuccess" class="alert alert-success hidden"></div>
-
     <button class="btn btn-secondary" onclick="downloadWinCSV()">⬇️ 당첨번호 CSV 다운로드</button>
-    <button class="btn btn-primary"   onclick="downloadRecCSV()">⬇️ 추천번호 CSV 다운로드</button>
-
     <div id="statusBoard" class="alert alert-info hidden">
       <div style="font-weight:bold;margin-bottom:6px;">📊 로그</div>
       <div id="statusLog" style="font-size:12px;font-family:monospace;line-height:1.6;max-height:150px;overflow-y:auto;"></div>
     </div>
+    <button class="btn btn-go" id="goMainBtn" onclick="goToMain()" disabled>
+      📊 분석 · 추천 · 반자동 · 기록 →
+    </button>
   </div>
+</div>
 
-  <!-- ▶ 분석 탭 -->
-  <div id="content-analysis" class="content hidden">
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">총 회차</div><div class="stat-value" id="stat-total">0</div></div>
-      <div class="stat-card"><div class="stat-label">최근20회 기준</div><div class="stat-value" style="font-size:16px;padding-top:6px;" id="stat-range">-</div></div>
-      <div class="stat-card"><div class="stat-label">홀수 비율</div><div class="stat-value" id="stat-odd">0%</div></div>
-      <div class="stat-card"><div class="stat-label">짝수 비율</div><div class="stat-value" id="stat-even">0%</div></div>
-    </div>
-
-    <div class="section-title">🔥 핫넘버 (최근 20회 top10)</div>
-    <div class="number-grid" id="hotGrid"></div>
-
-    <div class="section-title">❄️ 콜드넘버 (최근 20회 bottom10)</div>
-    <div class="number-grid" id="coldGrid"></div>
-
-    <div class="section-title">📊 전체 번호 (1~45)</div>
-    <div class="number-grid" id="allGrid"></div>
-    <div id="numberDetail" class="analysis-section hidden"></div>
-
-    <div class="analysis-section">
-      <div class="analysis-title">📈 연속번호 분석</div>
-      <div class="analysis-item"><span class="analysis-label">전체 포함율</span><span class="analysis-value" id="consec-all">0%</span></div>
-      <div class="analysis-item"><span class="analysis-label">전체 평균</span><span class="analysis-value" id="consec-all-avg">0개</span></div>
-      <div class="analysis-item"><span class="analysis-label">최근 20회 포함율</span><span class="analysis-value" id="consec-recent">0%</span></div>
-      <div class="analysis-item"><span class="analysis-label">최근 20회 평균</span><span class="analysis-value" id="consec-recent-avg">0개</span></div>
-    </div>
-
-    <div class="analysis-section">
-      <div class="analysis-title">🔗 AC값 분석</div>
-      <div class="analysis-item"><span class="analysis-label">전체 평균</span><span class="analysis-value" id="ac-all">0</span></div>
-      <div class="analysis-item"><span class="analysis-label">최근 20회 평균</span><span class="analysis-value" id="ac-recent">0</span></div>
-      <div class="analysis-item"><span class="analysis-label">최빈 AC값</span><span class="analysis-value" id="ac-mode">0</span></div>
-    </div>
-
-    <div class="section-title">🏆 TOP 15 빈출번호</div>
-    <div class="bar-chart" id="topBars"></div>
-  </div>
-
-  <!-- ▶ 추천 탭 -->
-  <div id="content-recommend" class="content hidden">
-    <div class="section-title">🎯 AI 추천 번호</div>
-
-    <div class="analysis-section" style="text-align:center;">
-      <div style="font-weight:bold;">추천 대상 회차: <span id="nextRoundLabel" style="color:#667eea;font-size:20px;">-</span> 회</div>
-      <div style="font-size:12px;color:#666;margin-top:4px;">갱신 횟수: <span id="refreshCount">0</span></div>
-    </div>
-
-    <hr style="margin:14px 0;border-color:#eee;">
-
-    <button class="btn btn-primary" id="advancedBtn" onclick="runAdvancedEngine()">🚀 고급 분석 (큐브 ML 엔진)</button>
-
-    <div id="advancedMonitor" style="display:none;">
-
-      <!-- 단계 표시 -->
-      <div id="monitorPhaseRow" style="display:flex;gap:6px;margin-bottom:10px;font-size:11px;">
-        <div id="phaseML"  class="phase-badge phase-wait">① ML모델</div>
-        <div style="color:#555;line-height:24px;">→</div>
-        <div id="phaseEVO" class="phase-badge phase-wait">② 큐브진화</div>
-        <div style="color:#555;line-height:24px;">→</div>
-        <div id="phasePOOL" class="phase-badge phase-wait">③ 조합생성</div>
-        <div style="color:#555;line-height:24px;">→</div>
-        <div id="phaseDONE" class="phase-badge phase-wait">④ 완료</div>
-      </div>
-      <style>
-        .phase-badge{padding:3px 8px;border-radius:20px;font-weight:bold;transition:all 0.3s;}
-        .phase-wait{background:#2a2a3e;color:#555;}
-        .phase-active{background:#667eea;color:white;animation:pulseBadge 1s infinite;}
-        .phase-done{background:#00C49F;color:white;}
-        @keyframes pulseBadge{0%,100%{opacity:1;}50%{opacity:0.6;}}
-      </style>
-
-      <!-- 메인 진행바 -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-        <span id="monitorPhaseText" style="font-size:12px;color:#aaa;">준비 중...</span>
-        <span id="monitorPercent" style="font-weight:bold;color:#00ff88;font-size:14px;">0%</span>
-      </div>
-      <div style="background:#333;border-radius:8px;height:18px;overflow:hidden;margin-bottom:4px;position:relative;">
-        <div id="monitorBar" style="height:100%;width:0%;background:linear-gradient(90deg,#667eea,#00ff88);transition:width 0.4s;border-radius:8px;"></div>
-        <div id="monitorBarStripe" style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(255,255,255,0.05) 8px,rgba(255,255,255,0.05) 16px);border-radius:8px;"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:#666;margin-bottom:10px;">
-        <span id="monitorElapsed">경과: 0s</span>
-        <span id="monitorETA">남은 시간: 계산 중...</span>
-      </div>
-
-      <!-- 상태 카드 3개 -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;text-align:center;">
-        <div style="background:#16213e;border-radius:8px;padding:10px;">
-          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">라운드</div>
-          <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;">
-            <div id="monitorRound" style="font-size:20px;font-weight:bold;color:#667eea;">0</div>
-            <div id="monitorRoundTotal" style="font-size:10px;color:#555;">/ 50</div>
-          </div>
-        </div>
-        <div style="background:#16213e;border-radius:8px;padding:10px;">
-          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">후보 조합</div>
-          <div id="monitorCandidates" style="font-size:20px;font-weight:bold;color:#ffd700;">0</div>
-        </div>
-        <div style="background:#16213e;border-radius:8px;padding:10px;">
-          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">최고 점수</div>
-          <div id="monitorBestScore" style="font-size:18px;font-weight:bold;color:#ff6b6b;">-</div>
-        </div>
-      </div>
-
-      <!-- 현재 조합 -->
-      <div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:8px;">
-        <div style="font-size:10px;color:#aaa;margin-bottom:6px;">🎲 현재 탐색 조합</div>
-        <div id="monitorCurrentCombo" style="display:flex;gap:5px;justify-content:center;min-height:32px;align-items:center;">
-          <span style="color:#555;font-size:12px;">대기 중...</span>
-        </div>
-      </div>
-
-      <!-- 실시간 로그 -->
-      <div style="background:#0d1117;border-radius:8px;padding:10px;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-          <span style="font-size:10px;color:#aaa;">📋 실시간 로그</span>
-          <span id="monitorLogCount" style="font-size:10px;color:#555;">0개</span>
-        </div>
-        <div id="monitorLog" style="font-size:11px;font-family:monospace;color:#00ff88;max-height:100px;overflow-y:auto;line-height:1.9;"></div>
-      </div>
-    </div>
-
-    <div id="advancedResults"></div>
-    <button class="btn btn-primary" onclick="refreshRecommendations()">🔄 갱신</button>
-    <div id="recommendations"></div>
-
-    <label for="recFile" style="display:block;padding:13px;background:#8884D8;color:white;border-radius:10px;text-align:center;cursor:pointer;font-weight:bold;margin-bottom:10px;">
-      📂 추천번호 불러오기
-    </label>
-    <input type="file" id="recFile" accept=".csv" style="display:none" onchange="loadRecommendations(event)">
-
-    <div id="recAnalysisPanel" style="display:none;margin-top:10px;">
-      <div style="background:#1a1a2e;border-radius:12px;padding:15px;margin-bottom:12px;color:white;">
-        <div style="font-size:14px;font-weight:bold;margin-bottom:8px;">⚙️ 처리 프로세스</div>
-        <div id="recProcessLog" style="font-size:12px;font-family:monospace;color:#00ff88;line-height:1.8;max-height:140px;overflow-y:auto;"></div>
-      </div>
-      <div id="recResult" class="analysis-section" style="display:none;"></div>
-      <div style="background:#fff3e0;border:1px solid #ffb74d;border-radius:12px;padding:15px;margin-bottom:12px;">
-        <div style="font-size:14px;font-weight:bold;color:#e65100;margin-bottom:10px;">🔁 중복 분석</div>
-        <div id="recDupResult"></div>
-      </div>
-      <div style="background:#e8f5e9;border:1px solid #81c784;border-radius:12px;padding:15px;margin-bottom:12px;">
-        <div style="font-size:14px;font-weight:bold;color:#2e7d32;margin-bottom:10px;">📊 분포도</div>
-        <div id="recDistResult"></div>
-      </div>
-      <button class="btn btn-primary" onclick="mergeRecToData()">📥 추천 → 당첨데이터 추가 후 CSV 저장</button>
-      <div id="mergeResult" class="alert alert-success" style="display:none;margin-top:8px;"></div>
-    </div>
-
-    <div class="alert alert-warning" style="text-align:center;margin-top:10px;">
-      ⚠️ 로또는 확률 게임입니다.
-    </div>
-  </div>
-
-  <!-- ▶ 반자동 탭 -->
-  <div id="content-semiauto" class="content hidden">
-    <div class="section-title">✏️ 반자동 번호 생성</div>
-    <div class="alert alert-info" style="margin-bottom:14px;font-size:13px;">
-      번호를 직접 터치해서 선택 (최대 5개).<br>나머지는 통계 기반 자동 완성됩니다.
-    </div>
-    <div id="semiautoTickets"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-      <button class="btn btn-primary"   style="margin:0;" onclick="addSemiTicket()">+ 게임 추가</button>
-      <button class="btn btn-secondary" style="margin:0;" onclick="clearAllTickets()">초기화</button>
-    </div>
-    <div id="semiResultPanel" style="display:none;">
-      <div class="section-title" style="margin-top:10px;">🎟️ 완성된 번호</div>
-      <div id="semiResultList"></div>
-      <button class="btn btn-primary" onclick="regenerateAuto()">🔄 자동 부분 재생성</button>
-    </div>
-  </div>
-
-</div><!-- /container -->
-
-<!-- 번호 선택 다이얼로그 -->
 <div id="dialogOverlay" class="dialog-overlay hidden" onclick="closeDialogOutside(event)">
   <div class="dialog-box" onclick="event.stopPropagation()">
     <div class="dialog-title" id="dialogTitle">번호 선택</div>

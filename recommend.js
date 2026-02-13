@@ -3,6 +3,7 @@
 //  https://zerojat7-ui.github.io/LibraryJS/cube-engine.js
 // ══════════════════════════════════════════
 var refreshCounter = 0;
+var selectedRecs = new Set(); // 선택된 추천 조합 인덱스
 var recommendationHistory = [];
 var currentRecommendations = [];
 var finalTop5 = [];
@@ -70,20 +71,70 @@ function generateRecommendations() {
 }
 
 function displayRecommendations(recs) {
+    selectedRecs.clear();
+    updateRecSaveBtn();
     var c = document.getElementById('recommendations');
     c.innerHTML = '';
     if (!recs.length) { c.innerHTML='<div class="alert alert-warning">추천 번호를 생성할 수 없습니다.</div>'; return; }
-    recs.forEach(function(rec) {
+    recs.forEach(function(rec, idx) {
         var d = document.createElement('div');
         d.className = 'recommendation';
-        d.innerHTML = '<div class="rec-header"><div class="rec-title">추천 #'+rec.id+'</div>'+
+        d.setAttribute('data-rec-idx', idx);
+        d.onclick = function() { toggleRecSelect(idx, d); };
+        d.innerHTML = '<div class="rec-header"><div class="rec-title">추천 #'+rec.id+
+            ' <span id="rec-check-'+idx+'" style="font-size:14px;display:none;">✅</span></div>'+
             '<div style="font-size:11px;color:#666;">AC:'+rec.ac+' 연속:'+rec.consecutive+'</div></div>'+
             '<div class="rec-numbers">'+rec.numbers.map(function(n){
-                return '<div class="lotto-ball '+(n%2===0?'even':'odd')+'">'+n+'</div>';
+                return '<div class="lotto-ball '+ballClass(n)+'">'+n+'</div>';
             }).join('')+'</div>'+
             '<div class="rec-info"><div>홀:<strong>'+rec.oddCount+'</strong></div><div>짝:<strong>'+rec.evenCount+'</strong></div><div>합:<strong>'+rec.sum+'</strong></div></div>';
         c.appendChild(d);
     });
+}
+function toggleRecSelect(idx, el) {
+    if (selectedRecs.has(idx)) {
+        selectedRecs.delete(idx);
+        el.classList.remove('selected');
+        var chk = document.getElementById('rec-check-'+idx);
+        if (chk) chk.style.display = 'none';
+    } else {
+        selectedRecs.add(idx);
+        el.classList.add('selected');
+        var chk = document.getElementById('rec-check-'+idx);
+        if (chk) chk.style.display = 'inline';
+    }
+    updateRecSaveBtn();
+}
+function updateRecSaveBtn() {
+    var btn = document.getElementById('recSaveBtn');
+    if (!btn) return;
+    btn.disabled = selectedRecs.size === 0;
+}
+function saveSelectedRecs() {
+    if (selectedRecs.size === 0) return;
+    var nextRound = lottoData.length>0 ? lottoData[lottoData.length-1].round+1 : 1;
+    var cards = document.querySelectorAll('#recommendations .recommendation');
+    var saved = 0;
+    selectedRecs.forEach(function(idx) {
+        // 현재 표시된 카드에서 번호 추출
+        var card = cards[idx];
+        if (!card) return;
+        var balls = card.querySelectorAll('.lotto-ball');
+        var nums = Array.from(balls).map(function(b){ return parseInt(b.textContent); }).filter(function(n){ return !isNaN(n); });
+        if (nums.length !== 6) return;
+        saveForecast({ type: currentRecommendations.length? 0 : 0, round: nextRound, numbers: nums, seq: refreshCounter });
+        saved++;
+    });
+    // 고급추천 저장
+    Object.values(advSelectedNums).forEach(function(nums) {
+        saveForecast({ type:1, round: nextRound, numbers: nums, seq: refreshCounter });
+        saved++;
+    });
+    advSelectedNums = {};
+    if (saved>0) {
+        alert('✅ '+saved+'개 조합 저장 완료!');
+        updateRecSaveBtn();
+    }
 }
 
 function refreshRecommendations() { generateRecommendations(); }
@@ -281,122 +332,37 @@ function displayFinalTop5(result) {
     finalTop5.forEach(function(rec, idx) {
         var d = document.createElement('div');
         d.className = 'recommendation';
+        var advIdx = 'adv_'+idx;
+        d.setAttribute('data-adv-idx', advIdx);
+        d.onclick = function() { toggleAdvSelect(advIdx, d, rec.numbers); };
         d.innerHTML = '<div class="rec-header">'+
-            '<div class="rec-title">'+(idx===0?'👑 대표':'🎯 #'+(idx+1))+'</div>'+
+            '<div class="rec-title">'+(idx===0?'👑 대표':'🎯 #'+(idx+1))+
+            ' <span id="rec-check-'+advIdx+'" style="font-size:14px;display:none;">✅</span></div>'+
             '<div style="font-size:11px;color:#666;">SCORE: '+rec.score.toFixed(1)+'</div></div>'+
             '<div class="rec-numbers">'+rec.numbers.map(function(n){
-                return '<div class="lotto-ball '+(n%2===0?'even':'odd')+'">'+n+'</div>';
+                return '<div class="lotto-ball '+ballClass(n)+'">'+n+'</div>';
             }).join('')+'</div>';
         c.appendChild(d);
     });
+}
+var advSelectedNums = {};
+function toggleAdvSelect(idx, el, nums) {
+    if (advSelectedNums[idx]) {
+        delete advSelectedNums[idx];
+        el.classList.remove('selected');
+        var chk = document.getElementById('rec-check-'+idx);
+        if (chk) chk.style.display='none';
+    } else {
+        advSelectedNums[idx] = nums;
+        el.classList.add('selected');
+        var chk = document.getElementById('rec-check-'+idx);
+        if (chk) chk.style.display='inline';
+    }
+    // 고급결과에도 저장버튼 활성화
+    var btn = document.getElementById('recSaveBtn');
+    if (btn) btn.disabled = (selectedRecs.size===0 && Object.keys(advSelectedNums).length===0);
 }
 
 // ────────────────────────────────────
 //  추천번호 불러오기
 // ────────────────────────────────────
-function recLog(msg, color) {
-    var el=document.getElementById('recProcessLog'), d=document.createElement('div');
-    d.style.color=color||'#00ff88';
-    d.textContent='['+new Date().toLocaleTimeString('ko-KR')+'] '+msg;
-    el.appendChild(d); el.scrollTop=el.scrollHeight;
-}
-function loadRecommendations(event) {
-    var file=event.target.files[0]; if(!file) return;
-    document.getElementById('recAnalysisPanel').style.display='block';
-    ['recProcessLog','recDupResult','recDistResult'].forEach(function(id){document.getElementById(id).innerHTML='';});
-    document.getElementById('recResult').style.display='none';
-    document.getElementById('mergeResult').style.display='none';
-    loadedRecData=[];
-    recLog('📂 '+file.name);
-    var reader=new FileReader();
-    reader.onload=function(e){
-        var lines=e.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n');
-        recLog('총 '+lines.length+'줄');
-        var parsed=0,skipped=0;
-        lines.slice(1).forEach(function(line){
-            var p=line.split(',').map(function(v){return v.trim();});
-            if(p.length<8){skipped++;return;}
-            var round=parseInt(p[0]),refresh=parseInt(p[1]);
-            var nums=p.slice(2,8).map(Number);
-            if(isNaN(round)||nums.some(isNaN)){skipped++;return;}
-            loadedRecData.push({round:round,refresh:refresh,numbers:nums}); parsed++;
-        });
-        recLog('완료: 유효 '+parsed+'개');
-        var total=0,totalMatch=0,matchDetail={0:0,1:0,2:0,3:0,4:0,5:0,6:0};
-        loadedRecData.forEach(function(rec){
-            var actual=lottoData.find(function(d){return d.round===rec.round;});
-            if(actual){var match=rec.numbers.filter(function(n){return actual.numbers.indexOf(n)>=0;}).length;totalMatch+=match;matchDetail[match]++;total++;}
-        });
-        if(total>0){
-            var rate=(totalMatch/(total*6)*100).toFixed(2);
-            recLog('적중: '+total+'개, 평균 '+rate+'%');
-            var el=document.getElementById('recResult'); el.style.display='block';
-            var rows='';
-            for(var k=6;k>=0;k--){if(matchDetail[k]>0){var lbl=k===6?'1등':k===5?'2/3등':k===4?'4등':k===3?'5등':(k+'개 일치');rows+='<div class="analysis-item"><span class="analysis-label">'+lbl+'</span><span class="analysis-value">'+matchDetail[k]+'회</span></div>';}}
-            el.innerHTML='<div class="analysis-title">🏆 적중률</div><div class="analysis-item"><span class="analysis-label">총 비교</span><span class="analysis-value">'+total+'개</span></div><div class="analysis-item"><span class="analysis-label">평균</span><span class="analysis-value">'+rate+'%</span></div>'+rows;
-        }
-        analyzeRecDuplication(); analyzeRecDistribution();
-        recLog('✅ 완료!');
-    };
-    reader.readAsText(file,'UTF-8');
-}
-function analyzeRecDuplication() {
-    var el=document.getElementById('recDupResult');
-    if(!loadedRecData.length){el.innerHTML='<div style="color:#999">없음</div>';return;}
-    var dupMap={};
-    loadedRecData.forEach(function(r,i){var k=r.numbers.join(',');if(!dupMap[k])dupMap[k]=[];dupMap[k].push(i+1);});
-    var dups=Object.entries(dupMap).filter(function(e){return e[1].length>1;});
-    var sample=loadedRecData.slice(0,20),maxOv=0,pairs=[];
-    for(var i=0;i<sample.length;i++)for(var j=i+1;j<sample.length;j++){
-        var sh=sample[i].numbers.filter(function(n){return sample[j].numbers.indexOf(n)>=0;});
-        if(sh.length>=3)pairs.push({i:i+1,j:j+1,shared:sh,count:sh.length});
-        if(sh.length>maxOv)maxOv=sh.length;
-    }
-    pairs.sort(function(a,b){return b.count-a.count;});
-    var html=dups.length>0?'<div style="background:#ffebee;border-radius:8px;padding:10px;margin-bottom:8px;"><div style="font-weight:bold;color:#c62828;">🚨 완전중복 '+dups.length+'건</div>'+dups.map(function(d){return '<div style="font-size:12px;color:#c62828;">['+d[0]+'] '+d[1].length+'회</div>';}).join('')+'</div>':'<div style="background:#e8f5e9;border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px;color:#2e7d32;">✅ 완전 중복 없음</div>';
-    if(pairs.length>0){html+='<div style="font-size:13px;font-weight:bold;color:#e65100;margin-bottom:6px;">3개 이상 겹침 ('+pairs.length+'쌍)</div>';pairs.slice(0,8).forEach(function(p){html+='<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap;"><span style="font-size:12px;color:#666;">조합'+p.i+' vs '+p.j+':</span>'+p.shared.map(function(n){return '<div style="width:24px;height:24px;border-radius:50%;background:#ff8042;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;">'+n+'</div>';}).join('')+'</div>';});}
-    else html+='<div style="font-size:13px;color:#2e7d32;">✅ 겹침 없음</div>';
-    html+='<div style="font-size:12px;color:#999;margin-top:5px;">최대 겹침:'+maxOv+'개</div>';
-    el.innerHTML=html;
-}
-function analyzeRecDistribution() {
-    var el=document.getElementById('recDistResult');
-    if(!loadedRecData.length){el.innerHTML='<div style="color:#999">없음</div>';return;}
-    var freq={};for(var i=1;i<=45;i++)freq[i]=0;
-    loadedRecData.forEach(function(r){r.numbers.forEach(function(n){freq[n]++;});});
-    var ranges={'1-9':0,'10-19':0,'20-29':0,'30-39':0,'40-45':0};
-    loadedRecData.forEach(function(r){r.numbers.forEach(function(n){if(n<=9)ranges['1-9']++;else if(n<=19)ranges['10-19']++;else if(n<=29)ranges['20-29']++;else if(n<=39)ranges['30-39']++;else ranges['40-45']++;});});
-    var odd=0,even=0;loadedRecData.forEach(function(r){r.numbers.forEach(function(n){n%2===1?odd++:even++;});});
-    var total=odd+even,sorted=Object.entries(freq).filter(function(e){return e[1]>0;}).sort(function(a,b){return b[1]-a[1];});
-    var maxF=sorted.length>0?sorted[0][1]:1,rColors={'1-9':'#667eea','10-19':'#f093fb','20-29':'#4facfe','30-39':'#43e97b','40-45':'#fa709a'};
-    var rTotal=Object.values(ranges).reduce(function(a,b){return a+b;},0);
-    var html='<div style="margin-bottom:10px;"><div style="font-size:12px;font-weight:bold;color:#555;margin-bottom:5px;">홀짝</div><div style="display:flex;gap:6px;"><div style="flex:'+odd+';background:#FF8042;border-radius:6px;padding:6px;text-align:center;color:white;font-size:12px;font-weight:bold;">홀 '+odd+'<br><span style="font-size:10px;">'+(odd/total*100).toFixed(1)+'%</span></div><div style="flex:'+even+';background:#00C49F;border-radius:6px;padding:6px;text-align:center;color:white;font-size:12px;font-weight:bold;">짝 '+even+'<br><span style="font-size:10px;">'+(even/total*100).toFixed(1)+'%</span></div></div></div><div style="margin-bottom:10px;"><div style="font-size:12px;font-weight:bold;color:#555;margin-bottom:5px;">구간</div>';
-    Object.entries(ranges).forEach(function(e){var lbl=e[0],cnt=e[1],pct=rTotal>0?(cnt/rTotal*100).toFixed(1):0;html+='<div style="display:flex;align-items:center;margin-bottom:4px;"><div style="width:46px;font-size:11px;color:#555;">'+lbl+'</div><div style="flex:1;background:#eee;border-radius:4px;height:17px;overflow:hidden;position:relative;"><div style="width:'+pct+'%;height:100%;background:'+rColors[lbl]+';border-radius:4px;"></div><div style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:bold;color:#333;">'+cnt+'('+pct+'%)</div></div></div>';});
-    html+='</div><div style="font-size:12px;font-weight:bold;color:#555;margin-bottom:5px;">TOP 10</div>';
-    sorted.slice(0,10).forEach(function(e){var num=e[0],cnt=e[1],pct=(cnt/maxF*100).toFixed(0),isHot=analysis&&analysis.hotNumbers&&analysis.hotNumbers.indexOf(parseInt(num))>=0,bg=isHot?'#ff6b6b':'#667eea';html+='<div style="display:flex;align-items:center;margin-bottom:4px;"><div style="width:26px;text-align:right;font-size:12px;font-weight:bold;color:'+bg+';margin-right:5px;">'+num+'</div><div style="flex:1;background:#eee;border-radius:4px;height:17px;overflow:hidden;position:relative;"><div style="width:'+pct+'%;height:100%;background:'+bg+';border-radius:4px;"></div><div style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:bold;color:#333;">'+cnt+(isHot?' 🔥':'')+'</div></div></div>';});
-    el.innerHTML=html;
-    recLog('분포도 완료');
-}
-function mergeRecToData() {
-    if(!loadedRecData.length){alert('추천번호 없음');return;}
-    var csv='\uFEFF회차,번호1,번호2,번호3,번호4,번호5,번호6\n';
-    lottoData.forEach(function(d){csv+=d.round+','+d.numbers.join(',')+'\n';});
-    csv+='\n회차_추천,갱신,번호1,번호2,번호3,번호4,번호5,번호6\n';
-    loadedRecData.forEach(function(r){csv+=r.round+','+r.refresh+','+r.numbers.join(',')+'\n';});
-    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));a.download='당첨번호_추천포함.csv';a.click();
-    var el=document.getElementById('mergeResult');el.style.display='block';
-    el.innerHTML='✅ 저장 완료! 당첨 '+lottoData.length+'개 + 추천 '+loadedRecData.length+'개';
-    recLog('✅ 완료!');
-}
-function downloadWinCSV() {
-    if(!lottoData.length){alert('데이터 없음');return;}
-    var csv='\uFEFF회차,번호1,번호2,번호3,번호4,번호5,번호6\n';
-    lottoData.forEach(function(d){csv+=d.round+','+d.numbers.join(',')+'\n';});
-    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));a.download='당첨번호.csv';a.click();
-}
-function downloadRecCSV() {
-    if(!recommendationHistory.length){alert('추천번호 없음');return;}
-    var csv='\uFEFF회차,갱신,번호1,번호2,번호3,번호4,번호5,번호6\n';
-    recommendationHistory.forEach(function(entry){entry.combos.forEach(function(c){csv+=entry.round+','+entry.refresh+','+c.numbers.join(',')+'\n';});});
-    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));a.download='추천번호.csv';a.click();
-}

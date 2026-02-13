@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>로또 6/45 분석</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+
+  <!-- 헤더 (최신 회차 + 당첨번호) -->
+  <div class="header">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <button onclick="location.href='index.html'" style="background:none;border:none;color:#667eea;font-size:22px;cursor:pointer;padding:0;">←</button>
+      <h1 style="font-size:20px;">🎰 로또 6/45</h1>
+      <div style="width:30px;"></div>
+    </div>
+    <div id="latestDraw" style="margin-top:10px;padding:10px;background:#f8f9fa;border-radius:10px;">
+      <div style="font-size:11px;color:#888;margin-bottom:6px;" id="latestRoundLabel">데이터 로딩 중...</div>
+      <div id="latestBalls" style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;"></div>
+    </div>
+  </div>
+
+  <!-- 탭 -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('analysis',this)">📊 분석</button>
+    <button class="tab"        onclick="switchTab('recommend',this)">🎯 추천</button>
+    <button class="tab"        onclick="switchTab('semiauto',this)">✏️ 반자동</button>
+    <button class="tab"        onclick="switchTab('history',this)">📋 기록</button>
+  </div>
+
+  <!-- ▶ 분석 탭 -->
+  <div id="content-analysis" class="content">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">총 회차</div><div class="stat-value" id="stat-total">0</div></div>
+      <div class="stat-card"><div class="stat-label">최근20회 기준</div><div class="stat-value" style="font-size:16px;padding-top:6px;" id="stat-range">-</div></div>
+      <div class="stat-card"><div class="stat-label">홀수 비율</div><div class="stat-value" id="stat-odd">0%</div></div>
+      <div class="stat-card"><div class="stat-label">짝수 비율</div><div class="stat-value" id="stat-even">0%</div></div>
+    </div>
+    <div class="section-title">🔥 핫넘버 (최근 20회 top10)</div>
+    <div class="number-grid" id="hotGrid"></div>
+    <div class="section-title">❄️ 콜드넘버 (최근 20회 bottom10)</div>
+    <div class="number-grid" id="coldGrid"></div>
+    <div class="section-title">📊 전체 번호 (1~45)</div>
+    <div class="number-grid" id="allGrid"></div>
+    <div id="numberDetail" class="analysis-section hidden"></div>
+    <div class="analysis-section">
+      <div class="analysis-title">📈 연속번호 분석</div>
+      <div class="analysis-item"><span class="analysis-label">전체 포함율</span><span class="analysis-value" id="consec-all">0%</span></div>
+      <div class="analysis-item"><span class="analysis-label">전체 평균</span><span class="analysis-value" id="consec-all-avg">0개</span></div>
+      <div class="analysis-item"><span class="analysis-label">최근 20회 포함율</span><span class="analysis-value" id="consec-recent">0%</span></div>
+      <div class="analysis-item"><span class="analysis-label">최근 20회 평균</span><span class="analysis-value" id="consec-recent-avg">0개</span></div>
+    </div>
+    <div class="analysis-section">
+      <div class="analysis-title">🔗 AC값 분석</div>
+      <div class="analysis-item"><span class="analysis-label">전체 평균</span><span class="analysis-value" id="ac-all">0</span></div>
+      <div class="analysis-item"><span class="analysis-label">최근 20회 평균</span><span class="analysis-value" id="ac-recent">0</span></div>
+      <div class="analysis-item"><span class="analysis-label">최빈 AC값</span><span class="analysis-value" id="ac-mode">0</span></div>
+    </div>
+    <div class="section-title">🏆 TOP 15 빈출번호</div>
+    <div class="bar-chart" id="topBars"></div>
+  </div>
+
+  <!-- ▶ 추천 탭 -->
+  <div id="content-recommend" class="content hidden">
+    <div class="section-title">🎯 AI 추천 번호</div>
+    <div class="analysis-section" style="text-align:center;">
+      <div style="font-weight:bold;">추천 대상 회차: <span id="nextRoundLabel" style="color:#667eea;font-size:20px;">-</span> 회</div>
+      <div style="font-size:12px;color:#666;margin-top:4px;">갱신 횟수: <span id="refreshCount">0</span></div>
+    </div>
+    <hr style="margin:14px 0;border-color:#eee;">
+
+    <!-- 고급 엔진 -->
+    <button class="btn btn-primary" id="advancedBtn" onclick="runAdvancedEngine()">🚀 고급 분석 (큐브 ML 엔진)</button>
+    <div id="advancedMonitor" style="display:none;">
+      <div id="monitorPhaseRow" style="display:flex;gap:6px;margin-bottom:10px;font-size:11px;">
+        <div id="phaseML"   class="phase-badge phase-wait">① ML모델</div>
+        <div style="color:#555;line-height:24px;">→</div>
+        <div id="phaseEVO"  class="phase-badge phase-wait">② 큐브진화</div>
+        <div style="color:#555;line-height:24px;">→</div>
+        <div id="phasePOOL" class="phase-badge phase-wait">③ 조합생성</div>
+        <div style="color:#555;line-height:24px;">→</div>
+        <div id="phaseDONE" class="phase-badge phase-wait">④ 완료</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+        <span id="monitorPhaseText" style="font-size:12px;color:#aaa;">준비 중...</span>
+        <span id="monitorPercent"   style="font-weight:bold;color:#00ff88;font-size:14px;">0%</span>
+      </div>
+      <div style="background:#333;border-radius:8px;height:18px;overflow:hidden;margin-bottom:4px;position:relative;">
+        <div id="monitorBar" style="height:100%;width:0%;background:linear-gradient(90deg,#667eea,#00ff88);transition:width 0.4s;border-radius:8px;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#666;margin-bottom:10px;">
+        <span id="monitorElapsed">경과: 0s</span>
+        <span id="monitorETA">남은 시간: 계산 중...</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;text-align:center;">
+        <div style="background:#16213e;border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">라운드</div>
+          <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;">
+            <div id="monitorRound" style="font-size:20px;font-weight:bold;color:#667eea;">0</div>
+            <div id="monitorRoundTotal" style="font-size:10px;color:#555;">/ 50</div>
+          </div>
+        </div>
+        <div style="background:#16213e;border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">후보 조합</div>
+          <div id="monitorCandidates" style="font-size:20px;font-weight:bold;color:#ffd700;">0</div>
+        </div>
+        <div style="background:#16213e;border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:#aaa;margin-bottom:3px;">최고 점수</div>
+          <div id="monitorBestScore" style="font-size:18px;font-weight:bold;color:#ff6b6b;">-</div>
+        </div>
+      </div>
+      <div style="background:#16213e;border-radius:8px;padding:10px;margin-bottom:8px;">
+        <div style="font-size:10px;color:#aaa;margin-bottom:6px;">🎲 현재 탐색 조합</div>
+        <div id="monitorCurrentCombo" style="display:flex;gap:5px;justify-content:center;min-height:32px;align-items:center;">
+          <span style="color:#555;font-size:12px;">대기 중...</span>
+        </div>
+      </div>
+      <div style="background:#0d1117;border-radius:8px;padding:10px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:10px;color:#aaa;">📋 실시간 로그</span>
+          <span id="monitorLogCount" style="font-size:10px;color:#555;">0개</span>
+        </div>
+        <div id="monitorLog" style="font-size:11px;font-family:monospace;color:#00ff88;max-height:100px;overflow-y:auto;line-height:1.9;"></div>
+      </div>
+    </div>
+    <div id="advancedResults"></div>
+
+    <!-- 기본 추천 + 갱신/저장 버튼 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <button class="btn btn-primary"   style="margin:0;" onclick="refreshRecommendations()">🔄 갱신</button>
+      <button class="btn btn-save"      style="margin:0;" id="recSaveBtn" onclick="saveSelectedRec()" disabled>💾 저장</button>
+    </div>
+
+    <!-- 추천 번호 목록 (선택 가능) -->
+    <div id="recommendations"></div>
+
+    <div class="alert alert-warning" style="text-align:center;margin-top:10px;">
+      ⚠️ 로또는 확률 게임입니다.
+    </div>
+  </div>
+
+  <!-- ▶ 반자동 탭 -->
+  <div id="content-semiauto" class="content hidden">
+    <div class="section-title">✏️ 반자동 번호 생성</div>
+    <div class="alert alert-info" style="margin-bottom:14px;font-size:13px;">
+      번호를 직접 터치해서 선택 (최대 6개).<br>6개 미만이면 나머지는 큐브 엔진 자동 완성.
+    </div>
+    <div id="semiautoTickets"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+      <button class="btn btn-primary"   style="margin:0;" onclick="addSemiTicket()">+ 추가</button>
+      <button class="btn btn-secondary" style="margin:0;" onclick="clearAllTickets()">초기화</button>
+      <button class="btn btn-save"      style="margin:0;" id="semiSaveBtn" onclick="saveSemiTickets()" disabled>💾 저장</button>
+    </div>
+    <div id="semiResultPanel" style="display:none;">
+      <div class="section-title" style="margin-top:10px;">🎟️ 완성된 번호</div>
+      <div id="semiResultList"></div>
+      <button class="btn btn-primary" onclick="regenerateAuto()">🔄 자동 부분 재생성</button>
+    </div>
+  </div>
+
+  <!-- ▶ 기록 탭 -->
+  <div id="content-history" class="content hidden">
+    <div class="section-title">📋 나의 추천 기록</div>
+    <div id="historyList">
+      <div style="text-align:center;color:#aaa;padding:20px;font-size:13px;">기록이 없습니다</div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- 번호 선택 다이얼로그 -->
+<div id="dialogOverlay" class="dialog-overlay hidden" onclick="closeDialogOutside(event)">
+  <div class="dialog-box" onclick="event.stopPropagation()">
+    <div class="dialog-title" id="dialogTitle">번호 선택</div>
+    <div class="dialog-grid" id="dialogGrid"></div>
+    <div class="dialog-actions">
+      <button class="d-cancel"  onclick="closeDialog()">취소</button>
+      <button class="d-confirm" onclick="confirmDialog()">확인</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://zerojat7-ui.github.io/LibraryJS/cube-engine.js"></script>
+<script src="analysis.js"></script>
+<script src="recommend.js"></script>
+<script src="semiauto.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

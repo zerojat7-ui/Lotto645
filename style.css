@@ -1,30 +1,41 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height:100vh; padding:10px; }
 .container { max-width:500px; margin:0 auto; }
-.header { background:white; padding:20px; border-radius:15px; margin-bottom:15px; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.2); }
-.header h1 { font-size:24px; color:#667eea; margin-bottom:5px; }
-.header p  { font-size:13px; color:#666; }
-.tabs { display:flex; gap:6px; margin-bottom:15px; }
-.tab { flex:1; padding:11px 4px; background:rgba(255,255,255,0.3); border:none; border-radius:10px; color:white; font-weight:bold; font-size:12px; cursor:pointer; transition:all 0.3s; }
+.header { background:white; padding:16px 20px; border-radius:15px; margin-bottom:12px; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.2); }
+.header h1 { font-size:22px; color:#667eea; margin-bottom:3px; }
+
+/* 탭 */
+.tabs { display:flex; gap:5px; margin-bottom:12px; }
+.tab { flex:1; padding:10px 2px; background:rgba(255,255,255,0.3); border:none; border-radius:10px; color:white; font-weight:bold; font-size:11px; cursor:pointer; transition:all 0.3s; }
 .tab.active { background:white; color:#667eea; box-shadow:0 2px 10px rgba(0,0,0,0.2); }
-.tab:disabled { opacity:0.4; cursor:not-allowed; }
-.content { background:white; border-radius:15px; padding:20px; box-shadow:0 4px 15px rgba(0,0,0,0.2); margin-bottom:15px; }
-.btn { width:100%; padding:14px; border:none; border-radius:10px; font-size:15px; font-weight:bold; cursor:pointer; transition:all 0.2s; margin-bottom:10px; }
+
+/* 컨텐츠 */
+.content { background:white; border-radius:15px; padding:18px; box-shadow:0 4px 15px rgba(0,0,0,0.2); margin-bottom:12px; }
+
+/* 버튼 */
+.btn { width:100%; padding:13px; border:none; border-radius:10px; font-size:15px; font-weight:bold; cursor:pointer; transition:all 0.2s; margin-bottom:10px; }
 .btn:active { transform:scale(0.98); }
 .btn-primary   { background:#667eea; color:white; }
 .btn-secondary { background:#00C49F; color:white; }
-.btn-red       { background:#ff6b6b; color:white; }
-.btn:disabled  { background:#ccc; cursor:not-allowed; }
+.btn-save      { background:#ff8c00; color:white; }
+.btn-go        { background:linear-gradient(135deg,#667eea,#764ba2); color:white; font-size:16px; }
+.btn:disabled  { background:#ccc !important; cursor:not-allowed; opacity:0.6; }
+
+/* 공통 */
 .alert { padding:12px; border-radius:8px; margin-bottom:12px; font-size:13px; }
 .alert-success { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
 .alert-info    { background:#d1ecf1; color:#0c5460; border:1px solid #bee5eb; }
 .alert-warning { background:#fff3cd; color:#856404; border:1px solid #ffeaa7; }
 .hidden { display:none !important; }
 .section-title { font-size:16px; font-weight:bold; color:#333; margin-bottom:15px; padding-bottom:8px; border-bottom:2px solid #667eea; }
+
+/* 통계 카드 */
 .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px; }
 .stat-card  { background:linear-gradient(135deg,#667eea,#764ba2); padding:15px; border-radius:10px; text-align:center; color:white; }
 .stat-label { font-size:12px; opacity:0.9; margin-bottom:5px; }
 .stat-value { font-size:26px; font-weight:bold; }
+
+/* 번호 그리드 */
 .number-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin:15px 0; }
 .number-item { aspect-ratio:1; background:#f8f9fa; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px; border:2px solid #e0e0e0; cursor:pointer; }
 .number-item.hot  { background:linear-gradient(135deg,#ff6b6b,#ee5a6f); border-color:#c92a2a; }
@@ -33,26 +44,42 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
 .number-item.hot .number-value,.number-item.cold .number-value { color:white; }
 .number-count { font-size:10px; color:#666; margin-top:2px; }
 .number-item.hot .number-count,.number-item.cold .number-count { color:rgba(255,255,255,0.9); }
-.analysis-section { margin:16px 0; padding:14px; background:#f8f9fa; border-radius:10px; }
+
+/* 분석 섹션 */
+.analysis-section { margin:14px 0; padding:14px; background:#f8f9fa; border-radius:10px; }
 .analysis-title   { font-size:15px; font-weight:bold; color:#333; margin-bottom:10px; }
 .analysis-item    { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid #dee2e6; }
 .analysis-item:last-child { border-bottom:none; }
 .analysis-label { font-size:13px; color:#666; }
 .analysis-value { font-size:13px; font-weight:bold; color:#667eea; }
+
+/* 바 차트 */
 .bar-chart { margin:15px 0; }
 .bar-item  { display:flex; align-items:center; margin-bottom:7px; font-size:12px; }
 .bar-label { width:28px; text-align:right; margin-right:8px; font-weight:bold; color:#667eea; }
 .bar-fill-container { flex:1; height:20px; background:#e9ecef; border-radius:4px; overflow:hidden; position:relative; }
 .bar-fill  { height:100%; background:linear-gradient(90deg,#667eea,#764ba2); border-radius:4px; }
 .bar-count { position:absolute; right:5px; top:50%; transform:translateY(-50%); color:white; font-weight:bold; font-size:11px; }
-.lotto-ball { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:17px; font-weight:bold; box-shadow:0 3px 8px rgba(0,0,0,0.28); }
-.lotto-ball.odd  { background:linear-gradient(135deg,#FF8042,#FF6B35); }
-.lotto-ball.even { background:linear-gradient(135deg,#00C49F,#00A884); }
-.recommendation { background:linear-gradient(135deg,#f8f9fa,#e9ecef); border:2px solid #667eea; border-radius:12px; padding:15px; margin-bottom:14px; }
+
+/* ══ 로또공 색상 (실제 로또 기준) ══
+   1~10:노랑  11~20:파랑  21~30:빨강  31~40:검정  41~45:녹색 */
+.lotto-ball { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:bold; box-shadow:0 3px 8px rgba(0,0,0,0.28); }
+.lotto-ball.r1 { background:linear-gradient(135deg,#FFD700,#FFA500); color:#222; }
+.lotto-ball.r2 { background:linear-gradient(135deg,#4dabf7,#1971c2); color:white; }
+.lotto-ball.r3 { background:linear-gradient(135deg,#ff6b6b,#c92a2a); color:white; }
+.lotto-ball.r4 { background:linear-gradient(135deg,#495057,#212529); color:white; }
+.lotto-ball.r5 { background:linear-gradient(135deg,#51cf66,#2f9e44); color:white; }
+
+/* 추천 카드 */
+.recommendation { background:linear-gradient(135deg,#f8f9fa,#e9ecef); border:2px solid #dee2e6; border-radius:12px; padding:15px; margin-bottom:14px; cursor:pointer; transition:all 0.2s; }
+.recommendation.selected { border-color:#667eea; background:linear-gradient(135deg,#eef0ff,#dde1ff); box-shadow:0 0 0 3px rgba(102,126,234,0.3); }
 .rec-header  { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
 .rec-title   { font-size:15px; font-weight:bold; color:#667eea; }
 .rec-numbers { display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin-bottom:8px; }
 .rec-info    { display:flex; justify-content:space-around; font-size:13px; color:#666; padding-top:8px; border-top:1px solid #ddd; }
+.rec-select-badge { font-size:11px; background:#667eea; color:white; padding:2px 8px; border-radius:10px; }
+
+/* LS 바 */
 .ls-bar { background:#f0f4ff; border:1px solid #c5d0f5; border-radius:10px; padding:12px; margin-bottom:12px; }
 .ls-bar-title { font-size:13px; font-weight:bold; color:#667eea; margin-bottom:6px; }
 #lsStatus { font-size:12px; color:#888; margin-bottom:8px; min-height:16px; }
@@ -60,9 +87,13 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
 .ls-btns button { padding:8px 12px; border:none; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer; }
 .ls-load { flex:1; background:#667eea; color:white; }
 .ls-del  { background:#ff6b6b; color:white; }
+
+/* 숫자 입력 */
 .num-inputs { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
 .num-btn { padding:14px 8px; border:2px solid #667eea; border-radius:10px; background:white; color:#667eea; font-size:16px; font-weight:bold; cursor:pointer; transition:all 0.2s; text-align:center; width:100%; }
 .num-btn.filled { background:#667eea; color:white; }
+
+/* 다이얼로그 */
 .dialog-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); display:flex; align-items:flex-end; z-index:999; }
 .dialog-box { background:white; width:100%; border-radius:20px 20px 0 0; padding:20px 14px 36px; max-height:72vh; overflow-y:auto; }
 .dialog-title { font-size:16px; font-weight:bold; color:#333; text-align:center; margin-bottom:14px; }
@@ -75,6 +106,8 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
 .dialog-actions button { flex:1; padding:14px; border:none; border-radius:10px; font-size:15px; font-weight:bold; cursor:pointer; }
 .d-cancel  { background:#f0f0f0; color:#666; }
 .d-confirm { background:#667eea; color:white; }
+
+/* 반자동 티켓 */
 .lotto-ticket { background:white; border:2px solid #333; border-radius:8px; padding:10px 8px; margin-bottom:14px; }
 .ticket-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
 .ticket-label  { background:#c00; color:white; font-weight:bold; font-size:13px; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
@@ -84,7 +117,39 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
 .ticket-num.sel-manual { background:#c00;    color:white; border-color:#c00; }
 .ticket-num.sel-auto   { background:#667eea; color:white; border-color:#667eea; }
 .ticket-footer { display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
-.result-ball { width:33px; height:33px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold; color:white; box-shadow:0 2px 5px rgba(0,0,0,0.22); }
-.ball-m { background:linear-gradient(135deg,#c00,#ff4444); }
-.ball-a { background:linear-gradient(135deg,#667eea,#764ba2); }
+
+/* 결과공 (범위별 색상 + 수동/자동 테두리) */
+.result-ball { width:33px; height:33px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.22); }
+.result-ball.r1 { background:linear-gradient(135deg,#FFD700,#FFA500); color:#222; }
+.result-ball.r2 { background:linear-gradient(135deg,#4dabf7,#1971c2); color:white; }
+.result-ball.r3 { background:linear-gradient(135deg,#ff6b6b,#c92a2a); color:white; }
+.result-ball.r4 { background:linear-gradient(135deg,#495057,#212529); color:white; }
+.result-ball.r5 { background:linear-gradient(135deg,#51cf66,#2f9e44); color:white; }
+.ball-manual-ring { box-shadow:0 0 0 3px #c00,    0 2px 5px rgba(0,0,0,0.22); }
+.ball-auto-ring   { box-shadow:0 0 0 3px #667eea, 0 2px 5px rgba(0,0,0,0.22); }
+
+/* 고급 모니터 */
 #advancedMonitor { background:#1a1a2e; border-radius:12px; padding:15px; margin-bottom:15px; color:white; }
+.phase-badge { padding:3px 8px; border-radius:20px; font-weight:bold; transition:all 0.3s; }
+.phase-wait   { background:#2a2a3e; color:#555; }
+.phase-active { background:#667eea; color:white; animation:pulseBadge 1s infinite; }
+.phase-done   { background:#00C49F; color:white; }
+@keyframes pulseBadge { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
+
+/* 기록 탭 */
+.history-item { background:#f8f9fa; border-radius:10px; padding:12px; margin-bottom:10px; border-left:4px solid #667eea; }
+.history-item.win1 { border-left-color:#FFD700; background:#fffbf0; }
+.history-item.win2 { border-left-color:#C0C0C0; background:#f8f8f8; }
+.history-item.win3 { border-left-color:#CD7F32; background:#fdf5ee; }
+.history-item.win4 { border-left-color:#667eea; }
+.history-item.win5 { border-left-color:#00C49F; }
+.history-meta { font-size:11px; color:#999; margin-bottom:6px; }
+.history-balls { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:5px; }
+.history-grade { font-size:12px; font-weight:bold; margin-top:4px; }
+
+/* 타입 배지 */
+.type-badge { display:inline-block; font-size:10px; padding:2px 7px; border-radius:10px; font-weight:bold; margin-right:4px; }
+.type-0 { background:#667eea; color:white; }
+.type-1 { background:#764ba2; color:white; }
+.type-2 { background:#00C49F; color:white; }
+.type-3 { background:#ff8c00; color:white; }

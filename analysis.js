@@ -1,6 +1,27 @@
-// ══════════════════════════════
-//  analysis.js  - 통계 분석 엔진
-// ══════════════════════════════
+// ══════════════════════════════════════════
+//  analysis.js  — 분석 엔진 + 공 색상 함수
+// ══════════════════════════════════════════
+
+// 공 범위 클래스: 1~10노랑 11~20파랑 21~30빨강 31~40검정 41~45녹색
+function ballClass(n) {
+    if (n <= 10) return 'r1';
+    if (n <= 20) return 'r2';
+    if (n <= 30) return 'r3';
+    if (n <= 40) return 'r4';
+    return 'r5';
+}
+
+// 공 HTML 생성
+function ballHTML(n, extraClass) {
+    var cls = 'lotto-ball ' + ballClass(n) + (extraClass ? ' ' + extraClass : '');
+    return '<div class="'+cls+'">'+n+'</div>';
+}
+
+// 결과공 HTML (반자동용, 수동/자동 링 구분)
+function resultBallHTML(n, isManual) {
+    var ring = isManual ? ' ball-manual-ring' : ' ball-auto-ring';
+    return '<div class="result-ball '+ballClass(n)+ring+'">'+n+'</div>';
+}
 
 function countConsecutive(numbers) {
     var sorted = numbers.slice().sort(function(a,b){return a-b;});
@@ -24,7 +45,6 @@ function calculateAC(numbers) {
 
 function analyzeData() {
     addLog('분석 시작...');
-
     var frequency = {};
     for (var i = 1; i <= 45; i++) frequency[i] = 0;
     var existingCombos = new Set();
@@ -109,9 +129,9 @@ function updateAnalysisUI() {
     document.getElementById('stat-odd').textContent   = analysis.oddPercentage  + '%';
     document.getElementById('stat-even').textContent  = analysis.evenPercentage + '%';
 
-    // 핫/콜드 그리드
     function renderSmallGrid(containerId, numList, cls) {
         var el = document.getElementById(containerId);
+        if (!el) return;
         el.innerHTML = '';
         numList.forEach(function(n) {
             var stat = analysis.numberStats.find(function(s){ return s.number === n; });
@@ -125,48 +145,56 @@ function updateAnalysisUI() {
     renderSmallGrid('hotGrid',  analysis.hotNumbers,  'hot');
     renderSmallGrid('coldGrid', analysis.coldNumbers, 'cold');
 
-    // 전체 1~45
     var allGrid = document.getElementById('allGrid');
-    allGrid.innerHTML = '';
-    for (var i = 1; i <= 45; i++) {
-        (function(n) {
-            var stat = analysis.numberStats.find(function(s){ return s.number === n; });
-            var cls = analysis.hotNumbers.indexOf(n) >= 0 ? 'hot' :
-                      analysis.coldNumbers.indexOf(n) >= 0 ? 'cold' : '';
-            var freq = stat ? (stat.count / analysis.totalDraws * 100).toFixed(1) : '0.0';
-            var div = document.createElement('div');
-            div.className = 'number-item ' + cls;
-            div.innerHTML = '<div class="number-value">' + n + '</div>' +
-                '<div class="number-count">' + (stat ? stat.count : 0) + '회<br>' +
-                '<span style="font-size:9px;">' + freq + '%</span></div>';
-            div.onclick = function(){ showNumberDetail(n); };
-            allGrid.appendChild(div);
-        })(i);
+    if (allGrid) {
+        allGrid.innerHTML = '';
+        for (var i = 1; i <= 45; i++) {
+            (function(n) {
+                var stat = analysis.numberStats.find(function(s){ return s.number === n; });
+                var cls = analysis.hotNumbers.indexOf(n) >= 0 ? 'hot' :
+                          analysis.coldNumbers.indexOf(n) >= 0 ? 'cold' : '';
+                var freq = stat ? (stat.count / analysis.totalDraws * 100).toFixed(1) : '0.0';
+                var div = document.createElement('div');
+                div.className = 'number-item ' + cls;
+                div.innerHTML = '<div class="number-value">' + n + '</div>' +
+                    '<div class="number-count">' + (stat ? stat.count : 0) + '회<br>' +
+                    '<span style="font-size:9px;">' + freq + '%</span></div>';
+                div.onclick = function(){ showNumberDetail(n); };
+                allGrid.appendChild(div);
+            })(i);
+        }
     }
 
-    document.getElementById('consec-all').textContent      = analysis.consecPercentAll + '%';
-    document.getElementById('consec-all-avg').textContent  = analysis.consecAvgAll + '개';
-    document.getElementById('consec-recent').textContent   = analysis.consecPercentRecent + '%';
-    document.getElementById('consec-recent-avg').textContent = analysis.consecAvgRecent + '개';
-    document.getElementById('ac-all').textContent    = analysis.acAvgAll;
-    document.getElementById('ac-recent').textContent = analysis.acAvgRecent;
-    document.getElementById('ac-mode').textContent   = analysis.mostCommonAC;
-
-    // TOP 15 막대차트
-    var barsDiv = document.getElementById('topBars');
-    barsDiv.innerHTML = '';
-    var maxCount = analysis.sortedByFreq[0].count;
-    analysis.sortedByFreq.slice(0, 15).forEach(function(s) {
-        var pct = (s.count / maxCount * 100).toFixed(0);
-        var d = document.createElement('div');
-        d.className = 'bar-item';
-        d.innerHTML = '<div class="bar-label">' + s.number + '</div>' +
-            '<div class="bar-fill-container">' +
-              '<div class="bar-fill" style="width:' + pct + '%"></div>' +
-              '<div class="bar-count">' + s.count + '회</div>' +
-            '</div>';
-        barsDiv.appendChild(d);
+    var els = {
+        'consec-all': analysis.consecPercentAll + '%',
+        'consec-all-avg': analysis.consecAvgAll + '개',
+        'consec-recent': analysis.consecPercentRecent + '%',
+        'consec-recent-avg': analysis.consecAvgRecent + '개',
+        'ac-all': analysis.acAvgAll,
+        'ac-recent': analysis.acAvgRecent,
+        'ac-mode': analysis.mostCommonAC
+    };
+    Object.keys(els).forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = els[id];
     });
+
+    var barsDiv = document.getElementById('topBars');
+    if (barsDiv) {
+        barsDiv.innerHTML = '';
+        var maxCount = analysis.sortedByFreq[0].count;
+        analysis.sortedByFreq.slice(0, 15).forEach(function(s) {
+            var pct = (s.count / maxCount * 100).toFixed(0);
+            var d = document.createElement('div');
+            d.className = 'bar-item';
+            d.innerHTML = '<div class="bar-label">' + s.number + '</div>' +
+                '<div class="bar-fill-container">' +
+                  '<div class="bar-fill" style="width:' + pct + '%"></div>' +
+                  '<div class="bar-count">' + s.count + '회</div>' +
+                '</div>';
+            barsDiv.appendChild(d);
+        });
+    }
 }
 
 function showNumberDetail(number) {
@@ -182,6 +210,7 @@ function showNumberDetail(number) {
         missStreak++;
     }
     var detail = document.getElementById('numberDetail');
+    if (!detail) return;
     detail.classList.remove('hidden');
     detail.innerHTML = '<div class="analysis-title">' + number + '번 상세</div>' +
         '<div class="analysis-item"><span class="analysis-label">총 출현</span><span class="analysis-value">' + appearances + '회</span></div>' +
