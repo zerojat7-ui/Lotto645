@@ -164,7 +164,32 @@ async function runAdvancedEngine() {
 
         onProgress: function(percent, stats) {
 
-            document.getElementById('monitorBar').style.width = percent + '%';
+            // 모니터 초기화
+    var monitor = document.getElementById('advancedMonitor');
+    monitor.style.display = 'block';
+    document.getElementById('advancedResults').innerHTML = '';
+    document.getElementById('monitorLog').innerHTML = '';
+    document.getElementById('monitorLogCount').textContent = '0개';
+    document.getElementById('monitorRound').textContent = '0';
+    document.getElementById('monitorRoundTotal').textContent = '/ 50';
+    document.getElementById('monitorCandidates').textContent = '0';
+    document.getElementById('monitorBestScore').textContent = '-';
+    document.getElementById('monitorBar').style.width = '0%';
+    document.getElementById('monitorPercent').textContent = '0%';
+    document.getElementById('monitorPhaseText').textContent = '준비 중...';
+    document.getElementById('monitorCurrentCombo').innerHTML = '<span style="color:#555;font-size:12px;">대기 중...</span>';
+    document.getElementById('monitorETA').textContent = '남은 시간: 계산 중...';
+    setPhase('ml');
+
+    // 경과 시간 인터벌
+    var elapsedInterval = setInterval(updateElapsed, 500);
+
+    // 과거 당첨번호 배열
+    var historyNums = lottoData.map(function(d){ return d.numbers; });
+    var totalRounds = 50;
+
+    mLog('🧠 CubeEngine v'+CubeEngine.version+' 시작');
+    mLog('📊 데이터: '+historyNums.length+'회차 학습'); document.getElementById('monitorBar').style.width = percent + '%';
             document.getElementById('monitorPercent').textContent = percent + '%';
 
             if (stats.phase === 'ml')
