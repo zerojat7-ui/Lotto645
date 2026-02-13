@@ -94,45 +94,38 @@ if (IS_MAIN) {
     analyzeData();
     updateMainHeader();
 }
-
 }
 
 // ── 헤더 최신회차 업데이트 (main.html) ──
 function updateMainHeader() {
-if (!lottoData.length) return;
-var last = lottoData[lottoData.length-1];
-var roundEl = document.getElementById('latestRoundLabel');
-var ballsEl = document.getElementById('latestBalls');
-if (!roundEl || !ballsEl) return;
+    if (!lottoData.length) return;
+    var last = lottoData[lottoData.length-1];
+    var roundEl = document.getElementById('latestRoundLabel');
+    var ballsEl = document.getElementById('latestBalls');
+    if (!roundEl || !ballsEl) return;
 
-// "1000회 1,12,26,31,34,43 + 7" 형식으로 표시
-var numsText = last.numbers.join(',');
-var bonusText = last.bonus ? ' + ' + last.bonus : '';
-roundEl.textContent = last.round + '회  ' + numsText + bonusText;
-roundEl.style.fontSize = '13px';
-roundEl.style.color = '#333';
-roundEl.style.fontWeight = 'bold';
+    // 회차 번호만 표시
+    roundEl.textContent = last.round + '회차';
 
-// 공 모양으로도 표시
-ballsEl.innerHTML = '';
-last.numbers.forEach(function(n) {
-    var d = document.createElement('div');
-    d.className = 'mini-ball ' + ballClass(n);
-    d.textContent = n;
-    ballsEl.appendChild(d);
-});
-// 보너스볼
-if (last.bonus) {
-    var sep = document.createElement('div');
-    sep.style.cssText = 'color:#999;font-size:14px;line-height:30px;';
-    sep.textContent = '+';
-    ballsEl.appendChild(sep);
-    var bd = document.createElement('div');
-    bd.className = 'mini-ball ' + ballClass(last.bonus) + ' bonus-ball';
-    bd.textContent = last.bonus;
-    ballsEl.appendChild(bd);
-}
-
+    // 공 모양으로 표시
+    ballsEl.innerHTML = '';
+    last.numbers.forEach(function(n) {
+        var d = document.createElement('div');
+        d.className = 'mini-ball ' + ballClass(n);
+        d.textContent = n;
+        ballsEl.appendChild(d);
+    });
+    // 보너스볼 구분자
+    if (last.bonus) {
+        var sep = document.createElement('span');
+        sep.style.cssText = 'color:#999;font-size:14px;line-height:28px;margin:0 2px;';
+        sep.textContent = '+';
+        ballsEl.appendChild(sep);
+        var bd = document.createElement('div');
+        bd.className = 'mini-ball ' + ballClass(last.bonus) + ' bonus-ball';
+        bd.textContent = last.bonus;
+        ballsEl.appendChild(bd);
+    }
 }
 
 // ── 다음 회차 표시 ──
@@ -253,7 +246,7 @@ a.download='당첨번호.csv'; a.click();
 
 // ── history.json 로드 ──
 function loadHistoryJSON() {
-showLSStatus('📡 당첨 데이터 로딩 중...','#667eea');
+showLSStatus('📡 당첨 데이터 로딩 중…','#667eea');
 fetch('history.json')
 .then(function(r){return r.json();})
 .then(function(data){
