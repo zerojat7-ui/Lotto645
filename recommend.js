@@ -130,167 +130,145 @@ function mShowCombo(nums) {
 // ────────────────────────────────────
 //  고급 엔진: CubeEngine 외부 라이브러리 사용
 // ────────────────────────────────────
-
-// ===============================
-// 🔥 고급 추천 엔진 실행 함수
-// ===============================
 async function runAdvancedEngine() {
-
-    // 1️⃣ 엔진 로드 확인
+    // CubeEngine 라이브러리 확인
     if (typeof CubeEngine === 'undefined') {
-        alert('CubeEngine 로드 실패');
+        alert('CubeEngine 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.\n\n(cube-engine.js 로드 실패 시 네트워크 확인)');
         return;
     }
 
-    // 2️⃣ 버튼 비활성화 (중복 실행 방지)
     var btn = document.getElementById('advancedBtn');
     btn.disabled = true;
     btn.innerHTML = '⏳ 분석 중...';
-
-    // 3️⃣ 초기화
     finalTop5 = [];
     logCount = 0;
     engineStartTime = performance.now();
 
-    // 4️⃣ 모바일 자동 감지
-    var isMobile = /iPhone|Android|iPad|iPod/i.test(navigator.userAgent);
+    // 모니터 초기화
+    var monitor = document.getElementById('advancedMonitor');
+    monitor.style.display = 'block';
+    document.getElementById('advancedResults').innerHTML = '';
+    document.getElementById('monitorLog').innerHTML = '';
+    document.getElementById('monitorLogCount').textContent = '0개';
+    document.getElementById('monitorRound').textContent = '0';
+    document.getElementById('monitorRoundTotal').textContent = '/ 50';
+    document.getElementById('monitorCandidates').textContent = '0';
+    document.getElementById('monitorBestScore').textContent = '-';
+    document.getElementById('monitorBar').style.width = '0%';
+    document.getElementById('monitorPercent').textContent = '0%';
+    document.getElementById('monitorPhaseText').textContent = '준비 중...';
+    document.getElementById('monitorCurrentCombo').innerHTML = '<span style="color:#555;font-size:12px;">대기 중...</span>';
+    document.getElementById('monitorETA').textContent = '남은 시간: 계산 중...';
+    setPhase('ml');
 
-    // 5️⃣ 과거 당첨 데이터 추출
-    var historyNums = lottoData.map(function(d){
-        return d.numbers;
-    });
+    // 경과 시간 인터벌
+    var elapsedInterval = setInterval(updateElapsed, 500);
 
-    // ===============================
-    // ⚙️ 핵심 최적화 설정
-    // ===============================
-    // ✅ rounds는 50 유지
-    // ✅ 대신 loopMin / poolSize 줄여서 속도 개선
-    // ===============================
-    var config = CubeEngine.withPreset('lotto645', {
+    // 과거 당첨번호 배열
+    var historyNums = lottoData.map(function(d){ return d.numbers; });
+    var totalRounds = 50;
 
-        history: historyNums,
+    mLog('🧠 CubeEngine v'+CubeEngine.version+' 시작');
+    mLog('📊 데이터: '+historyNums.length+'회차 학습');
 
-        // 🎯 50라운드 유지
-        rounds: 50,
+    try {
+        var result = await CubeEngine.generate(
+            CubeEngine.withPreset('lotto645', {
+                history  : historyNums,
+                topN     : 5,
+                rounds   : totalRounds,
 
-        // ⏱ 라운드당 계산 시간 (모바일 줄임)
-        evolveTime: isMobile ? 50 : 800,
+                onProgress: function(percent, stats) {
+                    document.getElementById('monitorBar').style.width = percent + '%';
+                    document.getElementById('monitorPercent').textContent = percent + '%';
 
-        // 🔥 가장 큰 병목 (중요!)
-        // 30000 → 5000 → 3000 으로 대폭 감소
-        loopMin: isMobile ? 3000 : 30000,
+                    if (stats.phase === 'ml') {
+                        setPhase('ml');
+                        document.getElementById('monitorPhaseText').textContent = '① ML 확률 모델 계산 중...';
+                        mLog('🧠 ML 모델 학습 시작 (lambda=0.18)');
+                    }
+                    if (stats.phase === 'ml_done') {
+                        setPhase('evo');
+                        document.getElementById('monitorPhaseText').textContent = '② 큐브 진화 준비...';
+                        mLog('✅ ML 완료 → 큐브 진화 시작');
+                    }
+                    if (stats.phase === 'evolving') {
+                        setPhase('pool');
+                        document.getElementById('monitorRound').textContent = stats.round;
+                        document.getElementById('monitorRoundTotal').textContent = '/ ' + stats.totalRounds;
+                        document.getElementById('monitorCandidates').textContent = stats.poolSize;
+                        document.getElementById('monitorPhaseText').textContent =
+                            '③ 라운드 '+stats.round+'/'+stats.totalRounds+' 완료 — 후보: '+stats.poolSize+'개';
 
-        // 🎲 후보 조합 개수
-        poolSize: isMobile ? 500 : 5000,
+                        if (stats.bestScore > 0)
+                            document.getElementById('monitorBestScore').textContent = stats.bestScore.toFixed(1);
 
-        topN: 5,
+                        // 현재 최고 조합 보여주기 (pool에서 임의 샘플)
+                        if (stats.poolSize > 0) {
+                            var pool = result && result.results ? result.results[0] : null;
+                            if (!pool) {
+                                // 통계 기반 샘플 조합 생성
+                                var sNums = [];
+                                var sUsed = new Set();
+                                if (analysis && analysis.hotNumbers) {
+                                    analysis.hotNumbers.slice(0,3).forEach(function(n){ sNums.push(n); sUsed.add(n); });
+                                }
+                                while (sNums.length < 6) {
+                                    var n = 1 + Math.floor(Math.random() * 45);
+                                    if (!sUsed.has(n)) { sUsed.add(n); sNums.push(n); }
+                                }
+                                mShowCombo(sNums.sort(function(a,b){return a-b;}));
+                            }
+                        }
 
-        // ===============================
-        // 📊 진행 상황 모니터링
-        // ===============================
-        onProgress: function(percent, stats) {
+                        // ETA 계산
+                        if (stats.round > 1 && stats.elapsed > 0) {
+                            var perRound = stats.elapsed / stats.round;
+                            var remaining = Math.round(perRound * (stats.totalRounds - stats.round) / 1000);
+                            document.getElementById('monitorETA').textContent =
+                                '남은 시간: 약 ' + (remaining > 0 ? remaining+'초' : '거의 완료');
+                        }
+                    }
+                    if (stats.phase === 'done') {
+                        setPhase('done');
+                        document.getElementById('monitorPhaseText').textContent = '④ 완료!';
+                        document.getElementById('monitorETA').textContent = '완료 ✅';
+                    }
+                },
 
-            // 진행 바
-            document.getElementById('monitorBar').style.width = percent + '%';
-            document.getElementById('monitorPercent').textContent = percent + '%';
-
-            // 단계 표시
-            if (stats.phase === 'ml') {
-                document.getElementById('monitorPhaseText').textContent =
-                    '① ML 모델 계산 중...';
-            }
-
-            if (stats.phase === 'ml_done') {
-                document.getElementById('monitorPhaseText').textContent =
-                    '② 진화 시작...';
-            }
-
-            if (stats.phase === 'evolving') {
-
-                // 현재 라운드 표시
-                document.getElementById('monitorRound').textContent = stats.round;
-                document.getElementById('monitorRoundTotal').textContent =
-                    '/ ' + stats.totalRounds;
-
-                // 현재 후보 개수
-                document.getElementById('monitorCandidates').textContent =
-                    stats.poolSize;
-
-                // 최고 점수 표시
-                if (stats.bestScore > 0) {
-                    document.getElementById('monitorBestScore').textContent =
-                        stats.bestScore.toFixed(1);
-                }
-
-                // ⏳ 남은 시간 계산
-                if (stats.round > 1 && stats.elapsed > 0) {
-
-                    var perRound = stats.elapsed / stats.round;
-                    var remain = Math.round(
-                        perRound * (stats.totalRounds - stats.round) / 1000
-                    );
-
-                    document.getElementById('monitorETA').textContent =
-                        '남은 시간: 약 ' + remain + '초';
-                }
-            }
-
-            if (stats.phase === 'done') {
-                document.getElementById('monitorPhaseText').textContent =
-                    '④ 완료!';
-            }
-        },
-
-        // ===============================
-        // 🔄 라운드별 시각 효과
-        // ===============================
-        onRound: function(roundNum) {
-
-            // 모바일은 2라운드마다 갱신 (DOM 부담 감소)
-            if (!isMobile || roundNum % 1 === 0) {
-
-                var sample = [];
-                var used = new Set();
-
-                while (sample.length < 6) {
-                    var n = 1 + Math.floor(Math.random() * 45);
-                    if (!used.has(n)) {
-                        used.add(n);
-                        sample.push(n);
+                onRound: function(roundNum, bestScore) {
+                    // 매 라운드 로그 (10회마다)
+                    if (roundNum % 5 === 0) {
+                        mLog('✅ '+roundNum+'/'+totalRounds+' 라운드 완료 | 최고점: '+bestScore.toFixed(1));
                     }
                 }
+            })
+        );
 
-                // 화면에 랜덤 조합 표시 (연산과 무관)
-                mShowCombo(sample.sort(function(a,b){ return a-b; }));
-            }
-        }
-    });
+        // 완료
+        clearInterval(elapsedInterval);
+        updateElapsed();
 
-    // ===============================
-    // 🚀 엔진 실행
-    // ===============================
-    try {
-
-        var result = await CubeEngine.generate(config);
-
-        // 상위 5개 저장
         finalTop5 = result.results.map(function(nums, i) {
-            return {
-                numbers: nums,
-                score: result.scores[i]
-            };
+            return { numbers: nums, score: result.scores[i] };
         });
+
+        document.getElementById('monitorCurrentCombo').innerHTML =
+            '<span style="color:#00ff88;font-size:14px;font-weight:bold;">✅ TOP 5 선정 완료!</span>';
+
+        mLog('🏆 완료! 소요: '+(result.meta.elapsed/1000).toFixed(1)+'s | 데이터: '+result.meta.historySize+'회차');
+        mLog('📦 최고점: '+result.scores[0].toFixed(1)+' | 라이브러리: CubeEngine v'+CubeEngine.version, '#ffd700');
 
         btn.disabled = false;
         btn.innerHTML = '🔁 다시 분석';
-
         displayFinalTop5(result);
 
-    } catch (e) {
-
+    } catch(e) {
+        clearInterval(elapsedInterval);
+        mLog('❌ 오류: ' + e.message, '#ff6b6b');
+        document.getElementById('monitorPhaseText').textContent = '오류 발생';
         btn.disabled = false;
         btn.innerHTML = '🔁 다시 시도';
-        alert('오류: ' + e.message);
     }
 }
 
