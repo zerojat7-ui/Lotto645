@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════
-//  semiauto.js  — 반자동 (수동6개, CubeEngine 자동, 저장)
+//  semiauto.js  - 반자동 (수동6개, CubeEngine 자동, 저장)
 // ══════════════════════════════════════════
 var semiTickets = [];
 
@@ -243,7 +243,7 @@ function updateSemiResult() {
         html += '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">';
         all.forEach(function(n){
             var isM=t.manualNums.indexOf(n)>=0;
-            var ring=isM?' ball-m-ring':' ball-a-ring';
+            var ring=isM?' ball-manual-ring':' ball-auto-ring';
             html+='<div class="result-ball '+ballClass(n)+ring+'">'+n+'</div>';
         });
         for (var k=all.length;k<6;k++) html+='<div class="result-ball" style="background:#ddd;color:#999;">?</div>';
