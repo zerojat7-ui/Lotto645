@@ -177,8 +177,8 @@ async function runAdvancedEngine() {
         evolveTime: isMobile ? 180 : 800,
 
         // 🔥 가장 큰 병목 (중요!)
-        // 30000 → 5000 으로 대폭 감소
-        loopMin: isMobile ? 5000 : 30000,
+        // 30000 → 5000 → 3000 으로 대폭 감소
+        loopMin: isMobile ? 3000 : 30000,
 
         // 🎲 후보 조합 개수
         poolSize: isMobile ? 1500 : 5000,
