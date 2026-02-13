@@ -3,7 +3,7 @@
 // ══════════════════════════════
 var lottoData = [];
 var analysis  = null;
-var LS_KEY    = ‘lotto645_v2’;
+var LS_KEY    = ‘lotto645_v7’;
 var IS_MAIN   = (location.pathname.indexOf(‘main.html’) >= 0);
 
 // ── 페이지 이동 ──
