@@ -1,85 +1,181 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>로또 6/45</title>
+  <title>로또 6/45 - 로딩</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+    }
+    .loader-box {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      max-width: 400px;
+      width: 100%;
+    }
+    .loader-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      animation: bounce 1s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    .loader-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .loader-text {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+    .loader-bar {
+      background: #f0f0f0;
+      border-radius: 10px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+    .loader-progress {
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s;
+      animation: progress 2s ease-in-out infinite;
+    }
+    @keyframes progress {
+      0% { width: 0%; }
+      50% { width: 70%; }
+      100% { width: 100%; }
+    }
+    .loader-status {
+      font-size: 12px;
+      color: #888;
+    }
+    .error-message {
+      color: #dc3545;
+      margin-top: 15px;
+      font-size: 13px;
+    }
+    .retry-btn {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .retry-btn:hover {
+      background: #5568d3;
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-
-  <div class="header">
-    <h1>🎰 로또 6/45</h1>
-    <div id="headerInfo" style="font-size:12px;color:#888;margin-top:4px;">데이터 로딩 중...</div>
-    <div id="latestDraw" style="display:none;margin-top:10px;padding:10px;background:#f8f9fa;border-radius:10px;">
-      <div style="font-size:11px;color:#888;margin-bottom:6px;" id="latestRoundLabel">최신 회차</div>
-      <div id="latestBalls" style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;"></div>
+  <div class="loader-container">
+    <div class="loader-box">
+      <div class="loader-icon">🎰</div>
+      <div class="loader-title">로또 6/45</div>
+      <div class="loader-text">당첨 데이터를 불러오는 중...</div>
+      <div class="loader-bar">
+        <div class="loader-progress"></div>
+      </div>
+      <div class="loader-status" id="status">history.json 로딩 중...</div>
+      <div class="error-message" id="errorMsg" style="display:none;"></div>
+      <button class="retry-btn" id="retryBtn" style="display:none;" onclick="location.reload()">다시 시도</button>
+      <button class="retry-btn" style="margin-top:10px;" onclick="location.href='LoadData.html'">데이터 직접 관리</button>
     </div>
   </div>
 
-  <div class="content">
-    <div class="section-title">📥 데이터 관리</div>
-    <div class="ls-bar">
-      <div class="ls-bar-title">💾 브라우저 자동저장</div>
-      <div id="lsStatus">확인 중...</div>
-      <div class="ls-btns">
-        <button class="ls-load" onclick="loadFromLS()">📂 저장 데이터 불러오기</button>
-        <button class="ls-del"  onclick="clearLS()">🗑️</button>
-      </div>
-    </div>
-    <div class="analysis-section">
-      <div class="analysis-title">➕ 새 회차 입력</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-        <span style="font-size:14px;color:#666;">다음 회차:</span>
-        <span id="nextRoundDisplay" style="font-size:22px;font-weight:bold;color:#667eea;">-</span>
-        <span style="font-size:14px;color:#666;">회</span>
-      </div>
-      <div class="num-inputs" id="numInputGrid">
-        <button class="num-btn" onclick="openDialog(0)">1번</button>
-        <button class="num-btn" onclick="openDialog(1)">2번</button>
-        <button class="num-btn" onclick="openDialog(2)">3번</button>
-        <button class="num-btn" onclick="openDialog(3)">4번</button>
-        <button class="num-btn" onclick="openDialog(4)">5번</button>
-        <button class="num-btn" onclick="openDialog(5)">6번</button>
-      </div>
-      <button class="btn btn-primary" onclick="addNewDraw()">✅ 저장</button>
-    </div>
-    <div class="analysis-section">
-      <div class="analysis-title">📁 CSV 업로드 (백업용)</div>
-      <label for="csvFile" style="display:block;padding:13px;background:#8884D8;color:white;border-radius:10px;text-align:center;cursor:pointer;font-weight:bold;margin-bottom:4px;">
-        📄 당첨번호.csv 선택
-      </label>
-      <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleFileUpload(event)">
-    </div>
-    <div id="importSuccess" class="alert alert-success hidden"></div>
-    <button class="btn btn-secondary" onclick="downloadWinCSV()">⬇️ 당첨번호 CSV 다운로드</button>
-    <div id="statusBoard" class="alert alert-info hidden">
-      <div style="font-weight:bold;margin-bottom:6px;">📊 로그</div>
-      <div id="statusLog" style="font-size:12px;font-family:monospace;line-height:1.6;max-height:150px;overflow-y:auto;"></div>
-    </div>
-    <button class="btn btn-go" id="goMainBtn" onclick="goToMain()" disabled>
-      📊 분석 · 추천 · 반자동 · 기록 →
-    </button>
-  </div>
-</div>
+  <script>
+    var LS_KEY = 'lotto645_v2';
 
-<div id="dialogOverlay" class="dialog-overlay hidden" onclick="closeDialogOutside(event)">
-  <div class="dialog-box" onclick="event.stopPropagation()">
-    <div class="dialog-title" id="dialogTitle">번호 선택</div>
-    <div class="dialog-grid" id="dialogGrid"></div>
-    <div class="dialog-actions">
-      <button class="d-cancel"  onclick="closeDialog()">취소</button>
-      <button class="d-confirm" onclick="confirmDialog()">확인</button>
-    </div>
-  </div>
-</div>
+    function updateStatus(msg) {
+      document.getElementById('status').textContent = msg;
+    }
 
-<script src="https://zerojat7-ui.github.io/LibraryJS/cube-engine.js"></script>
-<script src="analysis.js"></script>
-<script src="recommend.js"></script>
-<script src="semiauto.js"></script>
-<script src="app.js"></script>
+    function showError(msg) {
+      document.getElementById('errorMsg').textContent = msg;
+      document.getElementById('errorMsg').style.display = 'block';
+      document.getElementById('retryBtn').style.display = 'inline-block';
+    }
+
+    function loadHistoryJSON() {
+      updateStatus('📡 history.json 다운로드 중...');
+      
+      fetch('history.json')
+        .then(function(response) {
+          if (!response.ok) {
+            throw new Error('파일을 찾을 수 없습니다 (HTTP ' + response.status + ')');
+          }
+          return response.json();
+        })
+        .then(function(data) {
+          updateStatus('✅ ' + data.length + '개 회차 데이터 로드 완료');
+          
+          // 로컬스토리지에 저장
+          try {
+            localStorage.setItem(LS_KEY, JSON.stringify({
+              savedAt: new Date().toISOString(),
+              data: data
+            }));
+            updateStatus('💾 데이터 저장 완료');
+          } catch(e) {
+            console.warn('로컬스토리지 저장 실패:', e);
+          }
+
+          // 1초 후 main.html로 이동
+          setTimeout(function() {
+            updateStatus('🚀 메인 페이지로 이동 중...');
+            location.href = 'main.html';
+          }, 1000);
+        })
+        .catch(function(err) {
+          console.error('로드 실패:', err);
+          updateStatus('❌ 로드 실패');
+          showError('오류: ' + err.message + '\n\n"데이터 직접 관리" 버튼을 눌러 CSV를 업로드하거나 저장된 데이터를 불러오세요.');
+        });
+    }
+
+    // 페이지 로드 시 자동 실행
+    window.addEventListener('load', function() {
+      // 저장된 데이터가 있으면 바로 main.html로
+      try {
+        var saved = localStorage.getItem(LS_KEY);
+        if (saved) {
+          var obj = JSON.parse(saved);
+          if (obj.data && obj.data.length > 0) {
+            updateStatus('💾 저장된 데이터 발견 (' + obj.data.length + '개 회차)');
+            setTimeout(function() {
+              location.href = 'main.html';
+            }, 500);
+            return;
+          }
+        }
+      } catch(e) {}
+
+      // 저장된 데이터가 없으면 history.json 로드
+      setTimeout(loadHistoryJSON, 500);
+    });
+  </script>
+
 </body>
 </html>
