@@ -2,7 +2,7 @@
 //  recommend.js  — CubeEngine 외부 라이브러리 연동
 //  https://zerojat7-ui.github.io/LibraryJS/cube-engine.js
 // ══════════════════════════════════════════
-var refreshCounter = 0;
+var refreshCounter = 0; //
 var selectedRecs = new Set(); // 선택된 추천 조합 인덱스
 var recommendationHistory = [];
 var currentRecommendations = [];
@@ -111,31 +111,32 @@ function updateRecSaveBtn() {
     btn.disabled = selectedRecs.size === 0;
 }
 function saveSelectedRecs() {
-    if (selectedRecs.size === 0) return;
+    var hasBasic = selectedRecs.size > 0;
+    var hasAdv   = Object.keys(advSelectedNums).length > 0;
+    if (!hasBasic && !hasAdv) return;
     var nextRound = lottoData.length>0 ? lottoData[lottoData.length-1].round+1 : 1;
-    var cards = document.querySelectorAll('#recommendations .recommendation');
     var saved = 0;
+    // 기본추천 저장 (currentRecommendations 배열에서 직접 읽기)
     selectedRecs.forEach(function(idx) {
-        // 현재 표시된 카드에서 번호 추출
-        var card = cards[idx];
-        if (!card) return;
-        var balls = card.querySelectorAll('.lotto-ball');
-        var nums = Array.from(balls).map(function(b){ return parseInt(b.textContent); }).filter(function(n){ return !isNaN(n); });
-        if (nums.length !== 6) return;
-        saveForecast({ type: currentRecommendations.length? 0 : 0, round: nextRound, numbers: nums, seq: refreshCounter });
+        if (!currentRecommendations || !currentRecommendations[idx]) return;
+        var nums = currentRecommendations[idx].numbers;
+        if (!nums || nums.length !== 6) return;
+        saveForecast({ type:0, round: nextRound, numbers: nums, seq: refreshCounter });
         saved++;
     });
     // 고급추천 저장
-    Object.values(advSelectedNums).forEach(function(nums) {
+    Object.keys(advSelectedNums).forEach(function(key) {
+        var nums = advSelectedNums[key];
+        if (!nums || nums.length !== 6) return;
         saveForecast({ type:1, round: nextRound, numbers: nums, seq: refreshCounter });
         saved++;
     });
     advSelectedNums = {};
-    if (saved>0) {
-        alert('✅ '+saved+'개 조합 저장 완료!');
-        updateRecSaveBtn();
-    }
+    selectedRecs.clear();
+    updateRecSaveBtn();
+    if (saved > 0) alert('저장 완료! ' + saved + '개 조합이 기록에 저장됐습니다.');
 }
+
 
 function refreshRecommendations() { generateRecommendations(); }
 
