@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>로또 6/45</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>🎰 로또 6/45</h1>
+    <div id="headerInfo" style="font-size:12px;color:#888;margin-top:4px;">데이터 로딩 중...</div>
+    <div id="latestDraw" style="display:none;margin-top:10px;padding:10px;background:#f8f9fa;border-radius:10px;">
+      <div style="font-size:11px;color:#888;margin-bottom:6px;" id="latestRoundLabel">최신 회차</div>
+      <div id="latestBalls" style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;"></div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="section-title">📥 데이터 관리</div>
+    <div class="ls-bar">
+      <div class="ls-bar-title">💾 브라우저 자동저장</div>
+      <div id="lsStatus">확인 중...</div>
+      <div class="ls-btns">
+        <button class="ls-load" onclick="loadFromLS()">📂 저장 데이터 불러오기</button>
+        <button class="ls-del"  onclick="clearLS()">🗑️</button>
+      </div>
+    </div>
+    <div class="analysis-section">
+      <div class="analysis-title">➕ 새 회차 입력</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="font-size:14px;color:#666;">다음 회차:</span>
+        <span id="nextRoundDisplay" style="font-size:22px;font-weight:bold;color:#667eea;">-</span>
+        <span style="font-size:14px;color:#666;">회</span>
+      </div>
+      <div class="num-inputs" id="numInputGrid">
+        <button class="num-btn" onclick="openDialog(0)">1번</button>
+        <button class="num-btn" onclick="openDialog(1)">2번</button>
+        <button class="num-btn" onclick="openDialog(2)">3번</button>
+        <button class="num-btn" onclick="openDialog(3)">4번</button>
+        <button class="num-btn" onclick="openDialog(4)">5번</button>
+        <button class="num-btn" onclick="openDialog(5)">6번</button>
+      </div>
+      <button class="btn btn-primary" onclick="addNewDraw()">✅ 저장</button>
+    </div>
+    <div class="analysis-section">
+      <div class="analysis-title">📁 CSV 업로드 (백업용)</div>
+      <label for="csvFile" style="display:block;padding:13px;background:#8884D8;color:white;border-radius:10px;text-align:center;cursor:pointer;font-weight:bold;margin-bottom:4px;">
+        📄 당첨번호.csv 선택
+      </label>
+      <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleFileUpload(event)">
+    </div>
+    <div id="importSuccess" class="alert alert-success hidden"></div>
+    <button class="btn btn-secondary" onclick="downloadWinCSV()">⬇️ 당첨번호 CSV 다운로드</button>
+    <div id="statusBoard" class="alert alert-info hidden">
+      <div style="font-weight:bold;margin-bottom:6px;">📊 로그</div>
+      <div id="statusLog" style="font-size:12px;font-family:monospace;line-height:1.6;max-height:150px;overflow-y:auto;"></div>
+    </div>
+    <button class="btn btn-go" id="goMainBtn" onclick="goMain()" disabled>
+      📊 분석 · 추천 · 반자동 · 기록 →
+    </button>
+  </div>
+</div>
+
+<div id="dialogOverlay" class="dialog-overlay hidden" onclick="closeDialogOutside(event)">
+  <div class="dialog-box" onclick="event.stopPropagation()">
+    <div class="dialog-title" id="dialogTitle">번호 선택</div>
+    <div class="dialog-grid" id="dialogGrid"></div>
+    <div class="dialog-actions">
+      <button class="d-cancel"  onclick="closeDialog()">취소</button>
+      <button class="d-confirm" onclick="confirmDialog()">확인</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://zerojat7-ui.github.io/LibraryJS/cube-engine.js"></script>
+
+<script src="analysis.js"></script>
+
+<script src="recommend.js"></script>
+
+<script src="semiauto.js"></script>
+
+<script src="app.js"></script>
+
+</body>
+</html>
