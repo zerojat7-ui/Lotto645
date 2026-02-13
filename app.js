@@ -3,7 +3,7 @@
 // ══════════════════════════════
 var lottoData = [];
 var analysis  = null;
-var LS_KEY    = ‘lotto645_v2’;
+var LS_KEY    = 'lotto645_v2';
 var IS_MAIN   = (location.pathname.indexOf(‘main.html’) >= 0);
 
 // ── 페이지 이동 ──
@@ -77,7 +77,7 @@ el.textContent = msg; el.style.color = color || ‘#888’;
 function onDataLoaded() {
 var last = lottoData[lottoData.length-1];
 
-```
+
 // index.html
 var importEl = document.getElementById('importSuccess');
 if (importEl) {
@@ -95,7 +95,7 @@ if (IS_MAIN) {
     analyzeData();
     updateMainHeader();
 }
-```
+
 
 }
 
@@ -107,7 +107,7 @@ var roundEl = document.getElementById(‘latestRoundLabel’);
 var ballsEl = document.getElementById(‘latestBalls’);
 if (!roundEl || !ballsEl) return;
 
-```
+
 // "1000회 1,12,26,31,34,43 + 7" 형식으로 표시
 var numsText = last.numbers.join(',');
 var bonusText = last.bonus ? ' + ' + last.bonus : '';
@@ -135,7 +135,7 @@ if (last.bonus) {
     bd.textContent = last.bonus;
     ballsEl.appendChild(bd);
 }
-```
+
 
 }
 
