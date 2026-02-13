@@ -153,7 +153,13 @@ function saveSemiTickets() {
         saved++;
     });
     if (saved > 0) {
-        alert('✅ '+saved+'게임 저장 완료!');
+        setTimeout(function() {
+            alert('저장 완료! ' + saved + '게임이 기록에 저장됐습니다.');
+            // 기록탭으로 이동
+            var recTab = document.querySelector('.tab:nth-child(4)');
+            if (recTab) { recTab.click(); }
+            else { renderRecords(); }
+        }, 100);
     }
 }
 
