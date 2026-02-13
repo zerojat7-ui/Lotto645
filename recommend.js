@@ -2,7 +2,7 @@
 //  recommend.js  — CubeEngine 외부 라이브러리 연동
 //  https://zerojat7-ui.github.io/LibraryJS/cube-engine.js
 // ══════════════════════════════════════════
-var refreshCounter = 0; //
+var refreshCounter = 0;
 var selectedRecs = new Set(); // 선택된 추천 조합 인덱스
 var recommendationHistory = [];
 var currentRecommendations = [];
@@ -134,7 +134,15 @@ function saveSelectedRecs() {
     advSelectedNums = {};
     selectedRecs.clear();
     updateRecSaveBtn();
-    if (saved > 0) alert('저장 완료! ' + saved + '개 조합이 기록에 저장됐습니다.');
+    if (saved > 0) {
+        setTimeout(function() {
+            alert('저장 완료! ' + saved + '개 조합이 기록에 저장됐습니다.');
+            // 기록탭으로 이동
+            var recTab = document.querySelector('.tab:nth-child(4)');
+            if (recTab) { recTab.click(); }
+            else { renderRecords(); }
+        }, 100);
+    }
 }
 
 
