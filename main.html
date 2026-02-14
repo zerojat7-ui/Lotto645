@@ -171,7 +171,8 @@
 
   <div id="content-records" class="content hidden">
     <div class="section-title">📋 나의 추천 기록</div>
-    <div id="recordsList">
+          <button onclick="testSave()" style="width:100%;padding:12px;background:#FF6B00;color:white;border:none;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;margin-bottom:12px;">🔥 DB 저장 테스트</button>
+      <div id="recordsList">
       <div style="text-align:center;color:#aaa;padding:20px;font-size:13px;">기록이 없습니다</div>
     </div>
   </div>
@@ -200,6 +201,48 @@
 <script src="semiauto.js"></script>
 
 <script src="app.js"></script>
+
+
+    <script type="module">
+      import { initializeApp } from
+      "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+      import { getFirestore, collection, addDoc, serverTimestamp } from
+      "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "네키",
+        authDomain: "randextraccube-engine.firebaseapp.com",
+        projectId: "randextraccube-engine",
+        storageBucket: "randextraccube-engine.firebasestorage.app",
+        messagingSenderId: "515597545439",
+        appId: "1:515597545439:web:f1e804554406719a3cde6a"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      function getUserId() {
+          let uid = localStorage.getItem('lotto_uid');
+          if (!uid) {
+              uid = crypto.randomUUID();
+              localStorage.setItem('lotto_uid', uid);
+          }
+          return uid;
+      }
+
+      window.testSave = async function() {
+          await addDoc(collection(db, "recommendations"), {
+              userId: getUserId(),
+              round: 1106,
+              type: "basic",
+              numbers: [1,6,7,25,34,42],
+              matchCount: null,
+              rank: null,
+              createdAt: serverTimestamp()
+          });
+          alert("저장 완료");
+      }
+    </script>
 
 </body>
 </html>
