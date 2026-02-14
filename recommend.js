@@ -191,8 +191,69 @@ function mShowCombo(nums) {
 // ────────────────────────────────────
 //  고급 엔진: CubeEngine 외부 라이브러리 사용
 // ────────────────────────────────────
+// ── Firebase에서 엔진 학습 데이터 로드 ──
+async function loadEngineState() {
+    try {
+        var db = typeof firebase !== 'undefined' && firebase.apps.length > 0
+                 ? firebase.firestore() : null;
+        if (!db) return null;
+        var snap = await db.collection('lotto_history').doc('engine_state').get();
+        if (snap.exists) {
+            var data = snap.data();
+            mLog('🔥 Firebase 학습 데이터 로드 완료 (iteration: ' + (data.iteration || 0) + ')');
+            return data;
+        }
+        return null;
+    } catch(e) {
+        mLog('⚠️ Firebase 학습 데이터 로드 실패: ' + e.message, '#ff6b6b');
+        return null;
+    }
+}
+
+// ── Firebase에 엔진 학습 결과 저장 ──
+async function saveEngineState(result, iteration) {
+    try {
+        var db = typeof firebase !== 'undefined' && firebase.apps.length > 0
+                 ? firebase.firestore() : null;
+        if (!db) return false;
+
+        // probMap의 키를 문자열로 변환 (Firestore 요구사항)
+        var probMapStr = {};
+        Object.keys(result.probMap).forEach(function(k) {
+            probMapStr['n' + k] = result.probMap[k];
+        });
+
+        // fullPool 상위 100개만 저장
+        var poolToSave = result.fullPool.slice(0, 100).map(function(combo) {
+            return { items: combo };
+        });
+
+        await db.collection('lotto_history').doc('engine_state').set({
+            probMap  : probMapStr,
+            pool     : poolToSave,
+            iteration: iteration,
+            savedAt  : firebase.firestore.FieldValue.serverTimestamp(),
+            bestScore: result.scores[0] || 0
+        });
+        return true;
+    } catch(e) {
+        mLog('⚠️ Firebase 학습 저장 실패: ' + e.message, '#ff6b6b');
+        return false;
+    }
+}
+
+// ── probMap 키 복원 (n1 → 1) ──
+function restoreProbMap(probMapStr) {
+    if (!probMapStr) return null;
+    var probMap = {};
+    Object.keys(probMapStr).forEach(function(k) {
+        var num = parseInt(k.replace('n', ''));
+        if (!isNaN(num)) probMap[num] = probMapStr[k];
+    });
+    return Object.keys(probMap).length > 0 ? probMap : null;
+}
+
 async function runAdvancedEngine() {
-    // CubeEngine 라이브러리 확인
     if (typeof CubeEngine === 'undefined') {
         alert('CubeEngine 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.\n\n(cube-engine.js 로드 실패 시 네트워크 확인)');
         return;
@@ -222,22 +283,35 @@ async function runAdvancedEngine() {
     document.getElementById('monitorETA').textContent = '남은 시간: 계산 중...';
     setPhase('ml');
 
-    // 경과 시간 인터벌
     var elapsedInterval = setInterval(updateElapsed, 500);
-
-    // 과거 당첨번호 배열
     var historyNums = lottoData.map(function(d){ return d.numbers; });
     var totalRounds = 50;
 
-    mLog('🧠 CubeEngine v'+CubeEngine.version+' 시작');
-    mLog('📊 데이터: '+historyNums.length+'회차 학습');
+    mLog('🧠 CubeEngine v' + CubeEngine.version + ' 시작');
+    mLog('📊 데이터: ' + historyNums.length + '회차 학습');
+
+    // ── Firebase에서 이전 학습 상태 로드 ──
+    setPhase('ml');
+    document.getElementById('monitorPhaseText').textContent = '🔥 Firebase 학습 데이터 로딩...';
+    var engineState  = await loadEngineState();
+    var prevProbMap  = engineState ? restoreProbMap(engineState.probMap) : null;
+    var prevPool     = engineState ? (engineState.pool || []).map(function(p){ return p.items; }) : null;
+    var prevIter     = engineState ? (engineState.iteration || 0) : 0;
+
+    if (prevProbMap) {
+        mLog('✅ 이전 학습 데이터 로드 (iteration: ' + prevIter + ')', '#ffd700');
+    } else {
+        mLog('🆕 첫 실행: 신규 학습 시작');
+    }
 
     try {
         var result = await CubeEngine.generate(
             CubeEngine.withPreset('lotto645', {
-                history  : historyNums,
-                topN     : 5,
-                rounds   : totalRounds,
+                history        : historyNums,
+                externalProbMap: prevProbMap,   // ← 이전 학습 확률맵 주입
+                initialPool    : prevPool,       // ← 이전 세대 풀 주입
+                topN           : 5,
+                rounds         : totalRounds,
 
                 onProgress: function(percent, stats) {
                     document.getElementById('monitorBar').style.width = percent + '%';
@@ -259,16 +333,14 @@ async function runAdvancedEngine() {
                         document.getElementById('monitorRoundTotal').textContent = '/ ' + stats.totalRounds;
                         document.getElementById('monitorCandidates').textContent = stats.poolSize;
                         document.getElementById('monitorPhaseText').textContent =
-                            '③ 라운드 '+stats.round+'/'+stats.totalRounds+' 완료 — 후보: '+stats.poolSize+'개';
+                            '③ 라운드 ' + stats.round + '/' + stats.totalRounds + ' 완료 — 후보: ' + stats.poolSize + '개';
 
                         if (stats.bestScore > 0)
                             document.getElementById('monitorBestScore').textContent = stats.bestScore.toFixed(1);
 
-                        // 현재 최고 조합 보여주기 (pool에서 임의 샘플)
                         if (stats.poolSize > 0) {
                             var pool = result && result.results ? result.results[0] : null;
                             if (!pool) {
-                                // 통계 기반 샘플 조합 생성
                                 var sNums = [];
                                 var sUsed = new Set();
                                 if (analysis && analysis.hotNumbers) {
@@ -282,12 +354,11 @@ async function runAdvancedEngine() {
                             }
                         }
 
-                        // ETA 계산
                         if (stats.round > 1 && stats.elapsed > 0) {
                             var perRound = stats.elapsed / stats.round;
                             var remaining = Math.round(perRound * (stats.totalRounds - stats.round) / 1000);
                             document.getElementById('monitorETA').textContent =
-                                '남은 시간: 약 ' + (remaining > 0 ? remaining+'초' : '거의 완료');
+                                '남은 시간: 약 ' + (remaining > 0 ? remaining + '초' : '거의 완료');
                         }
                     }
                     if (stats.phase === 'done') {
@@ -298,15 +369,13 @@ async function runAdvancedEngine() {
                 },
 
                 onRound: function(roundNum, bestScore) {
-                    // 매 라운드 로그 (10회마다)
                     if (roundNum % 5 === 0) {
-                        mLog('✅ '+roundNum+'/'+totalRounds+' 라운드 완료 | 최고점: '+bestScore.toFixed(1));
+                        mLog('✅ ' + roundNum + '/' + totalRounds + ' 라운드 완료 | 최고점: ' + bestScore.toFixed(1));
                     }
                 }
             })
         );
 
-        // 완료
         clearInterval(elapsedInterval);
         updateElapsed();
 
@@ -317,8 +386,16 @@ async function runAdvancedEngine() {
         document.getElementById('monitorCurrentCombo').innerHTML =
             '<span style="color:#00ff88;font-size:14px;font-weight:bold;">✅ TOP 5 선정 완료!</span>';
 
-        mLog('🏆 완료! 소요: '+(result.meta.elapsed/1000).toFixed(1)+'s | 데이터: '+result.meta.historySize+'회차');
-        mLog('📦 최고점: '+result.scores[0].toFixed(1)+' | 라이브러리: CubeEngine v'+CubeEngine.version, '#ffd700');
+        mLog('🏆 완료! 소요: ' + (result.meta.elapsed/1000).toFixed(1) + 's | 데이터: ' + result.meta.historySize + '회차');
+        mLog('📦 최고점: ' + result.scores[0].toFixed(1) + ' | iteration: ' + (prevIter + 1), '#ffd700');
+
+        // ── Firebase에 학습 결과 저장 ──
+        var newIter = prevIter + 1;
+        saveEngineState(result, newIter).then(function(ok) {
+            if (ok) {
+                mLog('🔥 Firebase 학습 저장 완료 (iteration: ' + newIter + ')', '#00ff88');
+            }
+        });
 
         btn.disabled = false;
         btn.innerHTML = '🔁 다시 분석';
