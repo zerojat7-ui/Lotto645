@@ -153,13 +153,11 @@ function saveSemiTickets() {
         saved++;
     });
     if (saved > 0) {
-        setTimeout(function() {
-            alert('저장 완료! ' + saved + '게임이 기록에 저장됐습니다.');
-            // 기록탭으로 이동
-            var recTab = document.querySelector('.tab:nth-child(4)');
-            if (recTab) { recTab.click(); }
-            else { renderRecords(); }
-        }, 100);
+        alert(saved + '게임 저장 완료! 기록탭에서 확인하세요.');
+        var tabs = document.querySelectorAll('.tab');
+        if (tabs[3]) tabs[3].click();
+    } else {
+        alert('저장할 완성된 게임이 없습니다.');
     }
 }
 

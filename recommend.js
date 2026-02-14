@@ -111,37 +111,38 @@ function updateRecSaveBtn() {
     btn.disabled = selectedRecs.size === 0;
 }
 function saveSelectedRecs() {
-    var hasBasic = selectedRecs.size > 0;
-    var hasAdv   = Object.keys(advSelectedNums).length > 0;
-    if (!hasBasic && !hasAdv) return;
-    var nextRound = lottoData.length>0 ? lottoData[lottoData.length-1].round+1 : 1;
+    var nextRound = lottoData.length > 0 ? lottoData[lottoData.length-1].round + 1 : 1;
     var saved = 0;
-    // 기본추천 저장 (currentRecommendations 배열에서 직접 읽기)
+
+    // 기본추천: selectedRecs Set에서 인덱스로 currentRecommendations 읽기
     selectedRecs.forEach(function(idx) {
-        if (!currentRecommendations || !currentRecommendations[idx]) return;
-        var nums = currentRecommendations[idx].numbers;
-        if (!nums || nums.length !== 6) return;
-        saveForecast({ type:0, round: nextRound, numbers: nums, seq: refreshCounter });
+        var rec = currentRecommendations[idx];
+        if (!rec || !rec.numbers || rec.numbers.length !== 6) return;
+        saveForecast({ type: 0, round: nextRound, numbers: rec.numbers });
         saved++;
     });
-    // 고급추천 저장
+
+    // 고급추천: advSelectedNums 객체에서 읽기
     Object.keys(advSelectedNums).forEach(function(key) {
         var nums = advSelectedNums[key];
         if (!nums || nums.length !== 6) return;
-        saveForecast({ type:1, round: nextRound, numbers: nums, seq: refreshCounter });
+        saveForecast({ type: 1, round: nextRound, numbers: nums });
         saved++;
     });
-    advSelectedNums = {};
+
+    // 초기화
     selectedRecs.clear();
+    advSelectedNums = {};
     updateRecSaveBtn();
+
+    // 저장 결과 표시 후 기록탭 이동
     if (saved > 0) {
-        setTimeout(function() {
-            alert('저장 완료! ' + saved + '개 조합이 기록에 저장됐습니다.');
-            // 기록탭으로 이동
-            var recTab = document.querySelector('.tab:nth-child(4)');
-            if (recTab) { recTab.click(); }
-            else { renderRecords(); }
-        }, 100);
+        alert(saved + '개 저장 완료! 기록탭에서 확인하세요.');
+        // 기록탭 클릭
+        var tabs = document.querySelectorAll('.tab');
+        if (tabs[3]) tabs[3].click();
+    } else {
+        alert('저장할 항목이 없습니다. 조합을 먼저 선택(탭)해주세요.');
     }
 }
 
