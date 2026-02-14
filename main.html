@@ -171,7 +171,7 @@
 
   <div id="content-records" class="content hidden">
     <div class="section-title">📋 나의 추천 기록</div>
-          <button onclick="testSave()" style="width:100%;padding:12px;background:#FF6B00;color:white;border:none;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;margin-bottom:12px;">🔥 DB 저장 테스트</button>
+          <button id="dbTestBtn" onclick="testSave()" style="width:100%;padding:12px;background:#FF6B00;color:white;border:none;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;margin-bottom:12px;">🔥 DB 저장 테스트</button>
       <div id="recordsList">
       <div style="text-align:center;color:#aaa;padding:20px;font-size:13px;">기록이 없습니다</div>
     </div>
@@ -203,24 +203,27 @@
 <script src="app.js"></script>
 
 
-    <script type="module">
-      import { initializeApp } from
-      "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-      import { getFirestore, collection, addDoc, serverTimestamp } from
-      "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+            <script type="module">
+      import { initializeApp }  from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+      import { getAnalytics }   from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
+      import { getFirestore, collection, addDoc, serverTimestamp }
+                                from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
       const firebaseConfig = {
-        apiKey: "네키",
-        authDomain: "randextraccube-engine.firebaseapp.com",
-        projectId: "randextraccube-engine",
-        storageBucket: "randextraccube-engine.firebasestorage.app",
+        apiKey:            "AIzaSyB4S8qkK07QYXq5yw0Coo69sZBIk0uew2E",
+        authDomain:        "randextraccube-engine.firebaseapp.com",
+        projectId:         "randextraccube-engine",
+        storageBucket:     "randextraccube-engine.firebasestorage.app",
         messagingSenderId: "515597545439",
-        appId: "1:515597545439:web:f1e804554406719a3cde6a"
+        appId:             "1:515597545439:web:f1e804554406719a3cde6a",
+        measurementId:     "G-MWVM5711WH"
       };
 
       const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
+      const analytics = getAnalytics(app);
+      const db  = getFirestore(app);
 
+      // 사용자 고유 ID (기기마다 고정)
       function getUserId() {
           let uid = localStorage.getItem('lotto_uid');
           if (!uid) {
@@ -230,18 +233,32 @@
           return uid;
       }
 
+      // DB에 저장하는 공통 함수 (전역 노출)
+      window.saveToFirebase = async function(data) {
+          try {
+              await addDoc(collection(db, "recommendations"), {
+                  userId:     getUserId(),
+                  round:      data.round,
+                  type:       data.type,       // "basic" / "advanced" / "semi" / "manual"
+                  numbers:    data.numbers,
+                  matchCount: data.matchCount || null,
+                  rank:       data.rank || null,
+                  createdAt:  serverTimestamp()
+              });
+              return true;
+          } catch(e) {
+              console.error("Firebase 저장 오류:", e);
+              return false;
+          }
+      };
+
+      // 테스트용
       window.testSave = async function() {
-          await addDoc(collection(db, "recommendations"), {
-              userId: getUserId(),
-              round: 1106,
-              type: "basic",
-              numbers: [1,6,7,25,34,42],
-              matchCount: null,
-              rank: null,
-              createdAt: serverTimestamp()
+          var ok = await window.saveToFirebase({
+              round: 1106, type: "basic", numbers: [1,6,7,25,34,42]
           });
-          alert("저장 완료");
-      }
+          alert(ok ? "DB 저장 완료!" : "저장 실패 - 콘솔 확인");
+      };
     </script>
 
 </body>
