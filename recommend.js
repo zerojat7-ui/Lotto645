@@ -130,6 +130,23 @@ function saveSelectedRecs() {
         saved++;
     });
 
+    // 저장된 카드 비활성화 (회색 처리)
+    document.querySelectorAll('.recommendation.selected').forEach(function(el) {
+        el.classList.remove('selected');
+        el.style.opacity = '0.4';
+        el.style.pointerEvents = 'none';
+        el.style.border = '2px solid #ccc';
+        // 저장 완료 뱃지 추가
+        var header = el.querySelector('.rec-header');
+        if (header && !header.querySelector('.saved-badge')) {
+            var badge = document.createElement('span');
+            badge.className = 'saved-badge';
+            badge.style.cssText = 'font-size:11px;background:#00C49F;color:white;padding:2px 8px;border-radius:10px;margin-left:6px;';
+            badge.textContent = '💾 저장됨';
+            header.appendChild(badge);
+        }
+    });
+
     // 초기화
     selectedRecs.clear();
     advSelectedNums = {};
@@ -137,8 +154,6 @@ function saveSelectedRecs() {
 
     // 저장 결과 표시 후 기록탭 이동
     if (saved > 0) {
-        alert(saved + '개 저장 완료! 기록탭에서 확인하세요.');
-        // 기록탭 클릭
         goToRecordsTab();
     } else {
         alert('저장할 항목이 없습니다. 조합을 먼저 선택(탭)해주세요.');
@@ -241,15 +256,22 @@ async function saveEngineState(result, iteration) {
     }
 }
 
-// ── probMap 키 복원 (n1 → 1) ──
+// ── probMap 키 복원 (n1 → 숫자 1) ──
+// cube-engine.js가 cfg.externalProbMap[num] 으로 정수 키 접근하므로
+// 반드시 숫자 키로 복원해야 블렌딩이 작동함
 function restoreProbMap(probMapStr) {
     if (!probMapStr) return null;
     var probMap = {};
     Object.keys(probMapStr).forEach(function(k) {
         var num = parseInt(k.replace('n', ''));
-        if (!isNaN(num)) probMap[num] = probMapStr[k];
+        if (!isNaN(num) && num >= 1 && num <= 45) {
+            probMap[num] = parseFloat(probMapStr[k]); // 숫자 키 + 숫자 값 보장
+        }
     });
-    return Object.keys(probMap).length > 0 ? probMap : null;
+    var keys = Object.keys(probMap).length;
+    if (keys === 0) return null;
+    mLog('🔑 probMap 복원: ' + keys + '개 번호 (키 타입: ' + typeof Object.keys(probMap)[0] + ')', '#aaa');
+    return probMap;
 }
 
 async function runAdvancedEngine() {
@@ -319,7 +341,7 @@ async function runAdvancedEngine() {
                     if (stats.phase === 'ml') {
                         setPhase('ml');
                         document.getElementById('monitorPhaseText').textContent = '① ML 확률 모델 계산 중...';
-                        mLog('🧠 ML 모델 학습 시작 (lambda=0.18)');
+                        mLog('🧠 ML 모델 학습 시작 (iteration: ' + (prevIter+1) + ' | λ=0.18 | persistence: ' + (prevProbMap ? '0.7' : 'none') + ')');
                     }
                     if (stats.phase === 'ml_done') {
                         setPhase('evo');
