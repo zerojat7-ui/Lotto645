@@ -118,7 +118,7 @@ function saveSelectedRecs() {
     selectedRecs.forEach(function(idx) {
         var rec = currentRecommendations[idx];
         if (!rec || !rec.numbers || rec.numbers.length !== 6) return;
-        saveForecast({ type: 0, round: nextRound, numbers: rec.numbers });
+        saveForecast({ type: 'basic', round: nextRound, numbers: rec.numbers });
         saved++;
     });
 
@@ -126,7 +126,7 @@ function saveSelectedRecs() {
     Object.keys(advSelectedNums).forEach(function(key) {
         var nums = advSelectedNums[key];
         if (!nums || nums.length !== 6) return;
-        saveForecast({ type: 1, round: nextRound, numbers: nums });
+        saveForecast({ type: 'engine', round: nextRound, numbers: nums });
         saved++;
     });
 
@@ -139,8 +139,7 @@ function saveSelectedRecs() {
     if (saved > 0) {
         alert(saved + '개 저장 완료! 기록탭에서 확인하세요.');
         // 기록탭 클릭
-        var tabs = document.querySelectorAll('.tab');
-        if (tabs[3]) tabs[3].click();
+        goToRecordsTab();
     } else {
         alert('저장할 항목이 없습니다. 조합을 먼저 선택(탭)해주세요.');
     }

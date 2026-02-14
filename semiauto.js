@@ -145,7 +145,7 @@ function saveSemiTickets() {
         var all = t.manualNums.concat(t.autoNums).sort(function(a,b){return a-b;});
         if (all.length !== 6) return;
         saveForecast({
-            type  : 2,          // 반자동
+            type  : 'semi',     // 반자동
             round : nextRound,
             numbers: all,
             label : labels[i]
@@ -154,8 +154,7 @@ function saveSemiTickets() {
     });
     if (saved > 0) {
         alert(saved + '게임 저장 완료! 기록탭에서 확인하세요.');
-        var tabs = document.querySelectorAll('.tab');
-        if (tabs[3]) tabs[3].click();
+        goToRecordsTab();
     } else {
         alert('저장할 완성된 게임이 없습니다.');
     }
