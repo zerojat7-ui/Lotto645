@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════
-//  records.js  — 예측 기록 저장/조회
+//  records.js  v2.0.1 — 예측 기록 저장/조회 + Firebase 연동
 // ══════════════════════════════════════════
 var FC_KEY = 'lotto645_forecast';
 
@@ -13,7 +13,7 @@ function getUserId() {
     return uid;
 }
 
-// 예측 저장
+// ── 예측 저장 (LocalStorage + Firebase 동시 저장) ──
 function saveForecast(opts) {
     var uid = getUserId();
     var records = loadForecastData();
@@ -29,8 +29,22 @@ function saveForecast(opts) {
         numbers: opts.numbers,
         seq    : seq
     };
+
+    // [1] LocalStorage 저장
     records.push(entry);
     saveForecastData(records);
+
+    // [2] Firebase 저장 (window.saveToFirebase가 로드된 경우)
+    if (typeof window.saveToFirebase === 'function') {
+        var typeNames = ['basic', 'advanced', 'semi', 'manual'];
+        window.saveToFirebase({
+            round  : opts.round,
+            type   : typeNames[opts.type] || 'basic',
+            numbers: opts.numbers
+        }).then(function(ok) {
+            if (!ok) console.warn('Firebase 저장 실패 (LocalStorage에는 저장됨)');
+        });
+    }
 
     // 기록탭 열려있으면 즉시 갱신
     var recContent = document.getElementById('content-records');

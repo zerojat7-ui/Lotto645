@@ -203,63 +203,50 @@
 <script src="app.js"></script>
 
 
-            <script type="module">
-      import { initializeApp }  from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-      import { getAnalytics }   from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
-      import { getFirestore, collection, addDoc, serverTimestamp }
-                                from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-
-      const firebaseConfig = {
+            <!-- Firebase compat SDK (v2.0.1 - type=module 제거) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+    firebase.initializeApp({
         apiKey:            "AIzaSyB4S8qkK07QYXq5yw0Coo69sZBIk0uew2E",
         authDomain:        "randextraccube-engine.firebaseapp.com",
         projectId:         "randextraccube-engine",
         storageBucket:     "randextraccube-engine.firebasestorage.app",
         messagingSenderId: "515597545439",
-        appId:             "1:515597545439:web:f1e804554406719a3cde6a",
-        measurementId:     "G-MWVM5711WH"
-      };
+        appId:             "1:515597545439:web:f1e804554406719a3cde6a"
+    });
+    var _db = firebase.firestore();
 
-      const app = initializeApp(firebaseConfig);
-      const analytics = getAnalytics(app);
-      const db  = getFirestore(app);
+    window.saveToFirebase = async function(data) {
+        try {
+            var uid = localStorage.getItem('lotto_uid');
+            if (!uid) {
+                uid = 'user_' + Math.random().toString(36).slice(2, 10);
+                localStorage.setItem('lotto_uid', uid);
+            }
+            await _db.collection("recommendations").add({
+                userId    : uid,
+                round     : data.round,
+                type      : data.type,
+                numbers   : data.numbers,
+                matchCount: data.matchCount || null,
+                rank      : data.rank || null,
+                createdAt : firebase.firestore.FieldValue.serverTimestamp()
+            });
+            return true;
+        } catch(e) {
+            console.error("Firebase 저장 오류:", e);
+            return false;
+        }
+    };
 
-      // 사용자 고유 ID (기기마다 고정)
-      function getUserId() {
-          let uid = localStorage.getItem('lotto_uid');
-          if (!uid) {
-              uid = crypto.randomUUID();
-              localStorage.setItem('lotto_uid', uid);
-          }
-          return uid;
-      }
-
-      // DB에 저장하는 공통 함수 (전역 노출)
-      window.saveToFirebase = async function(data) {
-          try {
-              await addDoc(collection(db, "recommendations"), {
-                  userId:     getUserId(),
-                  round:      data.round,
-                  type:       data.type,       // "basic" / "advanced" / "semi" / "manual"
-                  numbers:    data.numbers,
-                  matchCount: data.matchCount || null,
-                  rank:       data.rank || null,
-                  createdAt:  serverTimestamp()
-              });
-              return true;
-          } catch(e) {
-              console.error("Firebase 저장 오류:", e);
-              return false;
-          }
-      };
-
-      // 테스트용
-      window.testSave = async function() {
-          var ok = await window.saveToFirebase({
-              round: 1106, type: "basic", numbers: [1,6,7,25,34,42]
-          });
-          alert(ok ? "DB 저장 완료!" : "저장 실패 - 콘솔 확인");
-      };
-    </script>
+    window.testSave = async function() {
+        var ok = await window.saveToFirebase({
+            round: 1106, type: "basic", numbers: [1,6,7,25,34,42]
+        });
+        alert(ok ? "DB 저장 완료!" : "저장 실패 - 콘솔 확인");
+    };
+</script>
 
 </body>
 </html>
