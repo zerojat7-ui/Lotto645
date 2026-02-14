@@ -1,5 +1,6 @@
 // ══════════════════════════════════════════
 //  recommend.js  — CubeEngine 외부 라이브러리 연동
+//  recommend ver 2.2.5
 //  https://zerojat7-ui.github.io/LibraryJS/cube-engine.js
 // ══════════════════════════════════════════
 var refreshCounter = 0;
@@ -341,7 +342,7 @@ async function runAdvancedEngine() {
                     if (stats.phase === 'ml') {
                         setPhase('ml');
                         document.getElementById('monitorPhaseText').textContent = '① ML 확률 모델 계산 중...';
-                        mLog('🧠 ML 모델 학습 시작 (iteration: ' + (prevIter+1) + ' | λ=0.18 | persistence: ' + (prevProbMap ? '0.7' : 'none') + ')');
+                        mLog('🧠 ML 모델 학습 시작 (iteration: ' + (prevIter+1) + ' | λ=' + prevPool + ' | persistence: ' + (prevProbMap ? '0.7' : 'none') + ')');
                     }
                     if (stats.phase === 'ml_done') {
                         setPhase('evo');
@@ -436,7 +437,7 @@ function displayFinalTop5(result) {
     var elapsed = result ? (result.meta.elapsed/1000).toFixed(1) : '-';
     c.innerHTML = '<div style="background:#1a1a2e;border-radius:10px;padding:12px;margin-bottom:12px;color:white;">'+
         '<div style="color:#00ff88;font-size:13px;font-weight:bold;margin-bottom:3px;">🧠 CubeEngine ML 결과</div>'+
-        '<div style="color:#aaa;font-size:11px;">ML확률모델 × 큐브진화 × 5000개 × 50라운드 | 소요: '+elapsed+'s</div></div>';
+        '<div style="color:#aaa;font-size:11px;">ML확률모델 × 큐브진화 × ' + pool + '개 × 50라운드 | 소요: '+elapsed+'s</div></div>';
     finalTop5.forEach(function(rec, idx) {
         var d = document.createElement('div');
         d.className = 'recommendation';
@@ -471,6 +472,4 @@ function toggleAdvSelect(idx, el, nums) {
     if (btn) btn.disabled = (selectedRecs.size===0 && Object.keys(advSelectedNums).length===0);
 }
 
-// ────────────────────────────────────
-//  추천번호 불러오기
-// ────────────────────────────────────
+─────────────────────────────
