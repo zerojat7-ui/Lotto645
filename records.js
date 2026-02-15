@@ -271,12 +271,15 @@ function _renderRecordsList(container, all) {
     var useScroll = all.length >= 4;
     if (useScroll) {
         html += '<div id="recordsScrollBox" style="' +
-            'max-height:calc(100vh - 260px);' +
-            'overflow-y:auto;' +
+            'height:58vh;' +
+            'min-height:320px;' +
+            'overflow-y:scroll;' +
             'overscroll-behavior:contain;' +
             '-webkit-overflow-scrolling:touch;' +
-            'padding-right:2px;' +
-            'scroll-behavior:smooth;' +
+            'padding-right:4px;' +
+            'border:1px solid #e8eaff;' +
+            'border-radius:10px;' +
+            'padding:4px 6px 4px 4px;' +
             '">';
     }
 
