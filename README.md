@@ -2,7 +2,23 @@
 2026-02-12
 로또 6/45 당첨 번호 분석 및 추천번호 생성기 제작
 
-## ver 9.0.0
+## ver 9.0.1
+2026-02-16
+
+### 포인트 시스템 버그 수정 (records.js, recommend.js, semiauto.js, app.js)
+
+**버그1: 첫 구동 시 포인트 즉시 미지급**
+- 원인: `initPointsIfNeeded()`가 async인데 `onDataLoaded()`에서 fire-and-forget으로 호출 → Firebase 응답 전에 배지 업데이트
+- 수정: `.then(updatePointBadge)` 체인으로 완료 후 배지 갱신 보장
+- 수정: 신규 유저 2000p 지급을 `_ptSaveFB` 직접 호출 → `_ptTransact` 트랜잭션으로 통일 (캐시 업데이트 타이밍 일치)
+
+**버그2: 포인트 0인데 모든 동작 가능**
+- 원인1: `saveForecastLocal` 내부 `usePoints` 호출이 fire-and-forget(반환값 미확인) → 포인트 부족해도 저장됨
+- 원인2: `semiauto` 기록 저장, `recommend` 기록 저장에 포인트 차감 로직 없음
+- 수정: `saveForecastLocal` 내부 `usePoints` 완전 제거
+- 수정: `saveSemiTickets`, `saveSelectedRecs` 저장 직전 `await usePoints(N, '기록 저장 N개')` 추가 → 부족 시 저장 차단
+
+
 2026-02-16
 
 ### 포인트 시스템 도입 (records.js, recommend.js, semiauto.js, main.html, style.css)

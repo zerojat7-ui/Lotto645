@@ -56,10 +56,6 @@ function saveForecastLocal(opts) {
     
     records.push(entry);
     saveForecastData(records);
-
-    // 기록 저장 1개당 1p 차감 (비동기, 실패해도 저장은 완료)
-    if (typeof usePoints === 'function') usePoints(1, '기록 저장');
-
     return entry;
 }
 
@@ -193,32 +189,35 @@ async function initPointsIfNeeded() {
     var obj   = fbObj || _ptLoadLS() || null;
 
     if (!obj) {
-        // 완전 신규: 2000p 지급
-        obj = _defaultPtObj();
-        obj.balance      = 2000;
-        obj.firstGranted = true;
-        obj.lastWeeklyAt = new Date().toISOString();
-        _ptCache = obj;
-        _ptSaveLS(obj);
-        await _ptSaveFB(obj);
-        showPointToast('+2000p 지급 (첫 구동 보너스)');
+        // ── 완전 신규: 트랜잭션으로 2000p 지급 ──
+        var newObj = await _ptTransact(function(o) {
+            // 트랜잭션 내 재확인 (동시 첫 접속 방지)
+            if (o.firstGranted) return null;
+            o.balance      = 2000;
+            o.firstGranted = true;
+            o.lastWeeklyAt = new Date().toISOString();
+            return o;
+        });
+        if (newObj) {
+            // 트랜잭션 성공: 캐시 이미 업데이트됨 (_ptTransact 내부에서 처리)
+            showPointToast('+2000p 지급 (첫 구동 보너스)');
+        }
     } else {
-        // 기존 유저: firstGranted 체크
+        // ── 기존 유저: firstGranted 체크 ──
         if (!obj.firstGranted) {
-            await _ptTransact(function(o) {
-                if (o.firstGranted) return null; // 이미 지급됨
+            var granted = await _ptTransact(function(o) {
+                if (o.firstGranted) return null;
                 o.balance      = (o.balance || 0) + 2000;
                 o.firstGranted = true;
                 return o;
             });
-            showPointToast('+2000p 지급 (첫 구동 보너스)');
+            if (granted) showPointToast('+2000p 지급 (첫 구동 보너스)');
         }
         // 주간 보너스 체크
         await _checkWeeklyBonus(obj);
     }
 
-    _ptCache = fbObj || obj;
-    _ptSaveLS(_ptCache);
+    // 최종 배지 업데이트 (트랜잭션 완료 후 _ptCache 반영)
     updatePointBadge();
 }
 

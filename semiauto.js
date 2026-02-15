@@ -184,6 +184,12 @@ async function saveSemiTickets() {
 
     if (!toSave.length) { alert('저장할 완성된 게임이 없습니다.'); return; }
 
+    // 기록 저장 1개당 1p × toSave.length 선차감 (포인트 부족 시 차단)
+    if (typeof usePoints === 'function') {
+        var ptNeeded = toSave.length;
+        if (!await usePoints(ptNeeded, '기록 저장 ' + ptNeeded + '개')) return;
+    }
+
     var saveBtn = document.getElementById('semiSaveBtn');
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ 저장 중...'; }
 

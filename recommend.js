@@ -140,6 +140,12 @@ async function saveSelectedRecs() {
         return;
     }
 
+    // 기록 저장 1개당 1p × toSave.length 선차감 (포인트 부족 시 차단)
+    if (typeof usePoints === 'function') {
+        var ptNeeded = toSave.length;
+        if (!await usePoints(ptNeeded, '기록 저장 ' + ptNeeded + '개')) return;
+    }
+
     var saveBtn = document.getElementById('recSaveBtn');
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ 저장 중...'; }
 

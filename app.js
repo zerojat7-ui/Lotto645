@@ -166,8 +166,12 @@ function onDataLoaded() {
         analyzeData();
         updateMainHeader();
         renderWinningTab();
-        // 포인트 초기화 및 주간 보너스 체크 (Firebase 기반)
-        if (typeof initPointsIfNeeded === 'function') initPointsIfNeeded();
+        // 포인트 초기화 (Firebase async → 완료 후 배지 갱신 보장)
+        if (typeof initPointsIfNeeded === 'function') {
+            initPointsIfNeeded().then(function() {
+                if (typeof updatePointBadge === 'function') updatePointBadge();
+            });
+        }
     }
 }
 
