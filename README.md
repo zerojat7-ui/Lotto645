@@ -311,3 +311,22 @@ data save 기능 수정
 **통계 레이아웃 2행 분리**
 - 1행: 홀짝 · 고저 · 색상 · 연속
 - 2행: 끝수합 · 번호합 · AC값
+
+## ver 9.2.0
+2026-02-16
+
+### 현재 탐색 조합 숫자 깨짐 버그 수정 (recommend.js)
+
+**원인**
+- `cube-engine.js v2.1.0` 업데이트로 `onRound` 콜백의 3번째 인자가 변경됨
+  - 구버전: `onRound(roundNum, bestScore, bestCombo)` — 조합 번호 배열
+  - v2.1.0: `onRound(roundNum, bestScore, scoreHistory)` — 라운드별 점수 배열
+- `recommend.js`의 `onRound`가 `scoreHistory`(점수값 배열)를 `mShowCombo()`에 그대로 전달
+  → `[371.6, 503.1, 450.2 ...]` 같은 소수점 숫자가 로또볼로 렌더링되어 깨진 화면 표시
+
+**수정**
+- `onRound` 3번째 인자명 `bestCombo` → `scoreHistory`로 변경, `mShowCombo()` 호출 완전 제거
+- `onProgress evolving`의 탐색 조합 표시 로직 교체:
+  - 기존: `stats.currentCombo` / `stats.bestCombo` (엔진 미지원 필드) 우선 시도
+  - 변경: `stats.topItems` (v2.1.0에서 추가된 이번 라운드 상위 번호 배열) 우선 사용
+  - 폴백: 라운드 시드 기반 가상 조합 (기존 유지)

@@ -484,13 +484,12 @@ async function runAdvancedEngine() {
                             '③ 라운드 ' + stats.round + '/' + stats.totalRounds + ' — 후보: ' + stats.poolSize + '개';
                         if (stats.bestScore > 0)
                             document.getElementById('monitorBestScore').textContent = stats.bestScore.toFixed(1);
-                        // 현재 탐색 조합 표시 - CubeEngine이 지원하는 필드 우선, 없으면 히스토리 기반 가상 조합
-                        if (stats.currentCombo && stats.currentCombo.length) {
-                            mShowCombo(stats.currentCombo);
-                        } else if (stats.bestCombo && stats.bestCombo.length) {
-                            mShowCombo(stats.bestCombo);
+                        // 현재 탐색 조합 표시
+                        // v2.1.0: stats.topItems = 이번 라운드 상위 번호 배열 (숫자만, 점수 아님)
+                        if (stats.topItems && stats.topItems.length >= 6) {
+                            mShowCombo(stats.topItems.slice(0, 6).sort(function(a,b){return a-b;}));
                         } else if (stats.round && historyNums.length) {
-                            // 라운드 번호 + 현재 시간 시드로 가상의 탐색 조합 생성 (시각적 표시용)
+                            // 폴백: 라운드 시드 기반 가상 조합
                             var seed = stats.round * 7 + (Date.now() % 97);
                             var pool45 = Array.from({length:45}, function(_,i){return i+1;});
                             var fake = [];
@@ -514,13 +513,10 @@ async function runAdvancedEngine() {
                         document.getElementById('monitorETA').textContent = '완료 ✅';
                     }
                 },
-                onRound: function(roundNum, bestScore, bestCombo) {
+                onRound: function(roundNum, bestScore, scoreHistory) {
+                    // v2.1.0: 3번째 인자는 scoreHistory(점수배열) — mShowCombo에 전달 금지
                     if (roundNum % 5 === 0)
                         mLog('✅ ' + roundNum + '/' + totalRounds + ' | 최고점: ' + bestScore.toFixed(1));
-                    // 매 라운드마다 현재 최고 조합 표시
-                    if (bestCombo && bestCombo.length) {
-                        mShowCombo(bestCombo);
-                    }
                 }
             })
         );
