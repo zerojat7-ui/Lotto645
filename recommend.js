@@ -175,8 +175,10 @@ async function saveSelectedRecs() {
                 });
                 fbOk = true;
             } catch(e) {
-                console.error('Firebase 저장 오류:', e);
+                alert('🔥 Firebase 오류:\n' + e.code + '\n' + e.message);
             }
+        } else {
+            alert('⚠️ Firebase 미연결\n_lottoDB: ' + (typeof window._lottoDB) + '\nfirebase: ' + (typeof firebase));
         }
 
         // 해당 카드에 저장 완료 아이콘 표시
