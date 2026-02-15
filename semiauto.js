@@ -6,7 +6,7 @@ var semiTickets = [];
 
 function addSemiTicket() {
     if (semiTickets.length >= 5) { alert('최대 5게임까지 가능합니다.'); return; }
-    semiTickets.push({ manualNums:[], autoNums:[], done:false });
+    semiTickets.push({ manualNums:[], autoNums:[], done:false, savedUuid:null });
     renderSemiTickets();
     updateSemiSaveBtn();
 }
@@ -26,7 +26,8 @@ function toggleSemiNum(idx, num) {
         if (t.manualNums.length >= 6) { alert('수동 번호는 최대 6개입니다.'); return; }
         t.manualNums.push(num);
     }
-    t.autoNums = []; t.done = false;
+    // 번호 변경 시 자동번호·완료·저장 초기화
+    t.autoNums = []; t.done = false; t.savedUuid = null;
     renderSemiTickets();
     updateSemiSaveBtn();
 }
@@ -37,7 +38,7 @@ async function autoFillTicket(idx) {
     var needed = 6 - t.manualNums.length;
 
     if (needed <= 0) {
-        t.autoNums = []; t.done = true;
+        t.autoNums = []; t.done = true; t.savedUuid = null;
         renderSemiTickets();
         updateSemiResult();
         var panel = document.getElementById('semiResultPanel');
@@ -51,12 +52,17 @@ async function autoFillTicket(idx) {
         if (!await usePoints(needed * 2, '반자동 자동번호 ' + needed + '개')) return;
     }
 
+    // 번호 갱신 → 저장 상태 초기화
+    t.savedUuid = null;
+
     var btn = document.querySelector('[data-autobtn="'+idx+'"]');
     if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
 
+    // AI 상태 메시지 초기화
+    _setSemiAiMsg(idx, 'thinking');
+
     if (typeof CubeEngine !== 'undefined' && lottoData && lottoData.length > 0) {
         try {
-            // 통합 엔진 상태 로드 (window 노출된 함수 사용)
             var loadFn    = window.loadSharedEngineState  || (async function(){ return null; });
             var saveFn    = window.saveSharedEngineState  || (async function(){ return false; });
             var restoreFn = window.restoreProbMap         || (function(){ return null; });
@@ -73,6 +79,13 @@ async function autoFillTicket(idx) {
             }
 
             var historyNums = lottoData.map(function(d){ return d.numbers; });
+
+            // 진행률 콜백으로 AI 메시지 업데이트
+            var progressCb = function(stats) {
+                var pct = stats && stats.progress ? stats.progress : 0;
+                _setSemiAiMsg(idx, pct >= 50 ? 'selecting' : 'thinking');
+            };
+
             var result = await CubeEngine.generate(
                 CubeEngine.withPreset('turbo', {
                     items          : 45,
@@ -81,7 +94,8 @@ async function autoFillTicket(idx) {
                     excludeNumbers : t.manualNums.slice(),
                     externalProbMap: prevProbMap,
                     initialPool    : prevPool,
-                    topN           : 3
+                    topN           : 3,
+                    onProgress     : progressCb
                 })
             );
 
@@ -100,7 +114,6 @@ async function autoFillTicket(idx) {
             }
             t.autoNums = picked.slice(0, needed);
 
-            // 통합 엔진 상태 저장 (source: 'semi') - 트랜잭션 누적 학습
             saveFn(result, null, 'semi').then(function(savedIter){
                 if (savedIter) console.log('[SemiEngine] 누적 학습 저장 완료 ✅ (총 iteration:', savedIter, ')');
             });
@@ -114,11 +127,27 @@ async function autoFillTicket(idx) {
     }
 
     t.done = true;
+    _setSemiAiMsg(idx, 'done');
     renderSemiTickets();
     updateSemiResult();
     var panel = document.getElementById('semiResultPanel');
     if (panel) panel.style.display = 'block';
     updateSemiSaveBtn();
+}
+
+// ── AI 상태 메시지 업데이트 ──
+function _setSemiAiMsg(idx, state) {
+    var el = document.querySelector('[data-aimsg="'+idx+'"]');
+    if (!el) return;
+    if (state === 'thinking') {
+        el.textContent = '🤔 Ai가 생각 중 입니다';
+        el.style.color = '#f5a623';
+    } else if (state === 'selecting') {
+        el.textContent = '🎯 Ai가 번호를 선별 합니다';
+        el.style.color = '#667eea';
+    } else {
+        el.textContent = '';
+    }
 }
 
 function fallbackAuto(manualNums, needed) {
@@ -143,7 +172,7 @@ async function regenerateAuto() {
     for (var i=0; i<semiTickets.length; i++) {
         var t = semiTickets[i];
         if (t.manualNums.length > 0 || t.autoNums.length > 0) {
-            t.autoNums = []; t.done = false;
+            t.autoNums = []; t.done = false; t.savedUuid = null;
             await autoFillTicket(i);
         }
     }
@@ -163,8 +192,11 @@ function removeSemiTicket(idx) {
 function updateSemiSaveBtn() {
     var btn = document.getElementById('semiSaveBtn');
     if (!btn) return;
-    var hasDone = semiTickets.some(function(t){ return t.done && (t.manualNums.length+t.autoNums.length)===6; });
-    btn.disabled = !hasDone;
+    // 완성됐고 아직 저장 안 된 티켓이 하나라도 있어야 활성화
+    var hasUnsaved = semiTickets.some(function(t) {
+        return t.done && !t.savedUuid && (t.manualNums.length + t.autoNums.length) === 6;
+    });
+    btn.disabled = !hasUnsaved;
 }
 
 async function saveSemiTickets() {
@@ -177,12 +209,16 @@ async function saveSemiTickets() {
         if (!t.done) return;
         var all = t.manualNums.concat(t.autoNums).sort(function(a,b){return a-b;});
         if (all.length !== 6) return;
-        // 수동 6개 전부 선택된 경우 type을 'manual'로 구분
+        // 이미 저장된 티켓은 제외 (번호 갱신 후에만 재저장 가능)
+        if (t.savedUuid) return;
         var saveType = (t.manualNums.length >= 6 && t.autoNums.length === 0) ? 'manual' : 'semi';
         toSave.push({ idx: i, label: labels[i], numbers: all, type: saveType });
     });
 
-    if (!toSave.length) { alert('저장할 완성된 게임이 없습니다.'); return; }
+    if (!toSave.length) {
+        alert('저장할 게임이 없습니다.\n이미 저장된 게임은 번호를 갱신해야 다시 저장할 수 있습니다.');
+        return;
+    }
 
     // 기록 저장 1개당 1p × toSave.length 선차감 (포인트 부족 시 차단)
     if (typeof usePoints === 'function') {
@@ -203,6 +239,9 @@ async function saveSemiTickets() {
             numbers      : item.numbers,
             engineVersion: engineVer
         });
+
+        // 저장 완료 → savedUuid 기록 (중복 저장 방지)
+        semiTickets[item.idx].savedUuid = entry.uuid;
 
         var fbOk = false;
         if (typeof window._lottoDB !== 'undefined' && window._lottoDB) {
@@ -239,9 +278,11 @@ async function saveSemiTickets() {
         saved++;
     }
 
+    // 저장 버튼 상태 갱신
+    updateSemiSaveBtn();
+
     if (saveBtn) {
         saveBtn.textContent = '✅ ' + saved + '게임 저장 완료';
-        saveBtn.disabled = false;
         saveBtn.style.background = '#00C49F';
         setTimeout(function() {
             saveBtn.textContent = '💾 저장';
@@ -288,13 +329,22 @@ function renderSemiTickets() {
         var footerMsg = selCount===0 ? '번호 선택 또는 바로 자동완성' :
                         selCount>=6  ? '6개 선택 완료! 확정하세요 👆' :
                         (6-selCount)+'개 자동 대기';
-        // allFull(수동 6개)이어도 확정 버튼 클릭 가능 - done 처리 위해 disabled 제거
         var btnBg  = selCount >= 6 ? '#27ae60' : '#667eea';
         var btnTxt = selCount >= 6 ? '✅ 확정' : '🤖 자동완성';
-        var footer = '<div class="ticket-footer" style="margin-top:8px;">' +
-            '<div style="font-size:11px;color:#999;">' + footerMsg + '</div>' +
-            '<button data-autobtn="' + ti + '" onclick="autoFillTicket(' + ti + ')" style="padding:7px 14px;background:' + btnBg + ';color:white;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;">' +
-            btnTxt + '</button></div>';
+
+        // 저장완료 티켓 표시
+        var savedBadge = t.savedUuid
+            ? '<span style="font-size:11px;color:#00a876;font-weight:bold;">✅ 저장됨 (번호 갱신 후 재저장 가능)</span>'
+            : '<span data-aimsg="'+ti+'" style="font-size:11px;font-weight:bold;"></span>';
+
+        var footer = '<div class="ticket-footer" style="margin-top:8px;flex-direction:column;gap:5px;">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<div style="font-size:11px;color:#999;">' + footerMsg + '</div>' +
+                '<button data-autobtn="' + ti + '" onclick="autoFillTicket(' + ti + ')" style="padding:7px 14px;background:' + btnBg + ';color:white;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;">' +
+                btnTxt + '</button>' +
+            '</div>' +
+            '<div style="min-height:16px;">' + savedBadge + '</div>' +
+            '</div>';
 
         div.innerHTML = header + grid + footer;
         container.appendChild(div);
