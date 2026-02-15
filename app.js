@@ -179,7 +179,8 @@ function updateMainHeader() {
     var ballsEl = document.getElementById('latestBalls');
     if (!roundEl || !ballsEl) return;
 
-    roundEl.textContent = last.round + '회차';
+    var dateStr = last.date ? '(' + last.date.replace(/-/g, '.') + ')' : '';
+    roundEl.textContent = last.round + '회차 ' + dateStr;
     ballsEl.innerHTML = '';
     last.numbers.forEach(function(n) {
         var d = document.createElement('div');
@@ -249,6 +250,11 @@ function parseCSV(text) {
                 var bonus = parseInt(v[bonusIdx]) || 0;
                 var obj = { round:round, numbers:nums, bonus:bonus };
                 if (dateIdx >= 0 && v[dateIdx]) obj.date = v[dateIdx];
+                // 신형식: 당첨게임수(index 9), "14 명" 형식에서 숫자만 추출
+                if (isNewFormat && v[9]) {
+                    var wMatch = v[9].match(/\d+/);
+                    if (wMatch) obj.winners = wMatch[0] + '명';
+                }
                 lottoData.push(obj);
             }
         }
@@ -434,6 +440,8 @@ function renderWinningTab() {
     sorted.forEach(function(draw) {
         var nums  = draw.numbers || [];
         var bonus = draw.bonus || null;
+        var drawDate = draw.date ? draw.date.replace(/-/g, '.') : '';
+        var winners = draw.winners || '';   // CSV 당첨게임수 (있으면)
 
         var sorted6 = nums.slice().sort(function(a,b){ return a - b; });
 
@@ -468,15 +476,19 @@ function renderWinningTab() {
             return '<div class="lotto-ball '+ballClass(n)+'" style="width:38px;height:38px;font-size:14px;flex-shrink:0;">'+n+'</div>';
         }).join('');
         if (bonus) {
-            ballsHtml += '<span style="color:#bbb;font-size:16px;line-height:38px;margin:0 2px;flex-shrink:0;">+</span>';
-            ballsHtml += '<div class="lotto-ball '+ballClass(bonus)+'" style="width:38px;height:38px;font-size:14px;flex-shrink:0;box-shadow:0 0 0 2.5px #555,0 2px 6px rgba(0,0,0,0.25);">'+bonus+'</div>';
+            ballsHtml += '<span style="color:#bbb;font-size:14px;line-height:38px;margin:0 3px;flex-shrink:0;">+</span>';
+            ballsHtml += '<div class="lotto-ball '+ballClass(bonus)+'" style="width:32px;height:32px;font-size:12px;flex-shrink:0;box-shadow:0 0 0 2px #555,0 2px 5px rgba(0,0,0,0.2);align-self:center;">'+bonus+'</div>';
         }
 
         html +=
             '<div style="background:white;border:1px solid #e8e8e8;border-radius:14px;padding:14px 12px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">' +
-                // 회차
-                '<div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px;">' +
-                    draw.round + '회차' +
+                // 회차 + 추첨일 + 당첨인원
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+                    '<div>' +
+                        '<span style="font-size:13px;font-weight:700;color:#333;">' + draw.round + '회차</span>' +
+                        (drawDate ? '<span style="font-size:11px;color:#999;margin-left:6px;">' + drawDate + '</span>' : '') +
+                    '</div>' +
+                    (winners ? '<span style="font-size:11px;color:#667eea;font-weight:600;">👥 ' + winners + '</span>' : '') +
                 '</div>' +
                 // 번호볼 한 줄
                 '<div style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap;overflow-x:auto;margin-bottom:12px;padding-bottom:2px;">' +

@@ -395,6 +395,10 @@ function parseCSV(text) {
                 var bonus = parseInt(v[bonusIdx]) || 0;
                 var obj = { round: round, numbers: nums, bonus: bonus };
                 if (dateIdx >= 0 && v[dateIdx]) obj.date = v[dateIdx];
+                if (isNewFormat && v[9]) {
+                    var wMatch = v[9].match(/\d+/);
+                    if (wMatch) obj.winners = wMatch[0] + '명';
+                }
                 parsed.push(obj);
             }
         }
