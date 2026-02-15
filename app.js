@@ -399,7 +399,17 @@ function renderWinningTab() {
     // 색상 범위 이름 (표시용)
     var colorNames = ['황', '청', '적', '흑', '녹'];
 
-    var html = '';
+    // 카드 높이 약 160px × 3 = 480px → 3개 노출 후 스크롤
+    var html = '<div id="winningScrollBox" style="' +
+        'height:62vh;' +
+        'min-height:480px;' +
+        'max-height:640px;' +
+        'overflow-y:scroll;' +
+        'overscroll-behavior:contain;' +
+        '-webkit-overflow-scrolling:touch;' +
+        'padding:2px 4px 4px 2px;' +
+        '">';
+
     sorted.forEach(function(draw) {
         var nums  = draw.numbers || [];
         var bonus = draw.bonus || null;
@@ -466,6 +476,17 @@ function renderWinningTab() {
                 '</div>' +
             '</div>';
     });
+
+    // 스크롤 컨테이너 닫기
+    html += '</div>';
+    // 맨 위로 버튼
+    html += '<div style="text-align:center;margin-top:8px;">' +
+        '<button onclick="document.getElementById(\'winningScrollBox\').scrollTo({top:0,behavior:\'smooth\'})" ' +
+        'style="background:#667eea;color:white;border:none;border-radius:20px;' +
+        'padding:7px 20px;font-size:12px;font-weight:bold;cursor:pointer;' +
+        'box-shadow:0 2px 8px rgba(102,126,234,0.4);">' +
+        '⬆️ 맨 위로</button>' +
+        '</div>';
 
     container.innerHTML = html;
 }

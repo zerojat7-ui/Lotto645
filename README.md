@@ -85,6 +85,18 @@ data save 기능 수정
 - 4단계 진행 도트 UI (연결 → 데이터 로드 → 캐싱 → 이동)
 - 어떤 경우에도 main.html로 진입 보장 (데이터 없어도 이동)
 
+## ver 8.3.0
+2026-02-15
+
+### 당첨 탭 카드 스크롤 개선 (app.js)
+
+**3개 카드 고정 노출 + 스크롤**
+- 당첨 탭에서 최초 3개 회차 카드만 화면에 표시
+- 나머지 회차는 스크롤하여 확인 가능 (`overflow-y: scroll`)
+- `height: 62vh` / `min-height: 480px` 고정 스크롤 박스 적용
+- `overscroll-behavior: contain` + `-webkit-overflow-scrolling: touch` 모바일 최적화
+- 하단 **⬆️ 맨 위로** 버튼으로 최신 회차로 즉시 복귀
+
 ## ver 8.2.0
 2026-02-15
 
