@@ -112,6 +112,31 @@ function updateRecSaveBtn() {
     btn.disabled = !hasSelection;
 }
 async function saveSelectedRecs() {
+    // ── 진단: 함수 진입 확인 ──
+    var diagInfo = {
+        lottoDataLen: lottoData ? lottoData.length : 'undefined',
+        selectedRecs: selectedRecs ? selectedRecs.size : 'undefined',
+        advSelected : Object.keys(advSelectedNums || {}).length,
+        lottoDB     : typeof window._lottoDB,
+        firebase    : typeof firebase,
+        saveFcLocal : typeof saveForecastLocal,
+        normalizeT  : typeof normalizeType,
+        loadFcData  : typeof loadForecastData
+    };
+    console.log('saveSelectedRecs 진입:', diagInfo);
+
+    // ── 진단: 저장 함수 진입 시 상태 팝업 ──
+    var diagMsg = [
+        '_lottoDB: ' + typeof window._lottoDB,
+        'firebase: ' + typeof firebase,
+        'saveForecastLocal: ' + typeof saveForecastLocal,
+        'normalizeType: ' + typeof normalizeType,
+        'loadForecastData: ' + typeof loadForecastData,
+        'selectedRecs: ' + (selectedRecs ? selectedRecs.size : 'N/A'),
+        'advSelected: ' + Object.keys(advSelectedNums || {}).length
+    ].join('\n');
+    alert('📋 저장 진단\n' + diagMsg);
+
     var nextRound = lottoData.length > 0 ? lottoData[lottoData.length-1].round + 1 : 1;
 
     // 저장할 항목 수집
@@ -153,11 +178,21 @@ async function saveSelectedRecs() {
         var item = toSave[i];
 
         // LocalStorage에 먼저 저장
-        var entry = saveForecastLocal({
-            type   : item.type,
-            round  : nextRound,
-            numbers: item.numbers
-        });
+        var entry;
+        try {
+            entry = saveForecastLocal({
+                type   : item.type,
+                round  : nextRound,
+                numbers: item.numbers
+            });
+        } catch(lsErr) {
+            alert('💥 LocalStorage 저장 오류:\n' + lsErr.message + '\n\nsaveForecastLocal 타입: ' + typeof saveForecastLocal);
+            break;
+        }
+        if (!entry) {
+            alert('💥 entry가 null입니다. saveForecastLocal 반환값 없음');
+            break;
+        }
 
         // Firebase 직접 저장 (await로 결과 확인)
         var fbOk = false;
