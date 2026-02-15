@@ -4,32 +4,11 @@
 <meta charset="UTF-8">
 <title>로또 1211회 결과</title>
 <style>
-body {
-    font-family: Arial, sans-serif;
-    padding: 40px;
-    background: #f5f5f5;
-}
-h2 { margin-bottom: 15px; }
-button {
-    padding: 10px 16px;
-    font-size: 15px;
-    margin-right: 10px;
-    cursor: pointer;
-}
-#status {
-    margin-top: 10px;
-    color: #555;
-}
-table {
-    border-collapse: collapse;
-    margin-top: 20px;
-    background: white;
-}
-th, td {
-    border: 1px solid #ccc;
-    padding: 10px 14px;
-    text-align: center;
-}
+body { font-family: Arial; padding: 40px; background: #f5f5f5; }
+button { padding: 10px 16px; margin-right: 10px; cursor: pointer; }
+#status { margin-top: 10px; }
+table { border-collapse: collapse; margin-top: 20px; background: white; }
+th, td { border: 1px solid #ccc; padding: 10px 14px; text-align: center; }
 </style>
 </head>
 
@@ -64,61 +43,48 @@ th, td {
 <script>
 let lottoData = null;
 
-async function loadLotto() {
+function loadLotto() {
     document.getElementById("status").textContent = "불러오는 중...";
 
-    try {
-        const target =
-        "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=1211";
-
-        const proxy =
-        "https://api.allorigins.win/raw?url=" + encodeURIComponent(target);
-
-        const res = await fetch(proxy);
-        const d = await res.json();
-
-        if (d.returnValue !== "success") {
-            throw new Error("데이터 없음");
-        }
-
-        lottoData = {
-            회차: d.drwNo,
-            추첨일: d.drwNoDate,
-            번호1: d.drwtNo1,
-            번호2: d.drwtNo2,
-            번호3: d.drwtNo3,
-            번호4: d.drwtNo4,
-            번호5: d.drwtNo5,
-            번호6: d.drwtNo6,
-            보너스: d.bnusNo,
-            당첨자수: d.firstPrzwnerCo,
-            당첨금: d.firstWinamnt
-        };
-
-        showTable(lottoData);
-        document.getElementById("status").textContent = "불러오기 완료";
-
-    } catch (e) {
-        document.getElementById("status").textContent =
-        "데이터를 불러오지 못했습니다.";
-    }
+    const script = document.createElement("script");
+    script.src =
+    "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=1211&callback=handleLotto";
+    document.body.appendChild(script);
 }
 
-function showTable(data) {
+function handleLotto(d) {
+    if (d.returnValue !== "success") {
+        document.getElementById("status").textContent = "데이터 없음";
+        return;
+    }
+
+    lottoData = {
+        회차: d.drwNo,
+        추첨일: d.drwNoDate,
+        번호1: d.drwtNo1,
+        번호2: d.drwtNo2,
+        번호3: d.drwtNo3,
+        번호4: d.drwtNo4,
+        번호5: d.drwtNo5,
+        번호6: d.drwtNo6,
+        보너스: d.bnusNo,
+        당첨자수: d.firstPrzwnerCo,
+        당첨금: d.firstWinamnt
+    };
+
     const tbody = document.querySelector("#resultTable tbody");
     tbody.innerHTML = "";
 
     const tr = document.createElement("tr");
-    Object.values(data).forEach(v => {
+    Object.values(lottoData).forEach(v => {
         const td = document.createElement("td");
-        td.textContent = typeof v === "number"
-            ? v.toLocaleString()
-            : v;
+        td.textContent = typeof v === "number" ? v.toLocaleString() : v;
         tr.appendChild(td);
     });
 
     tbody.appendChild(tr);
     document.getElementById("resultTable").style.display = "table";
+    document.getElementById("status").textContent = "불러오기 완료";
 }
 
 function saveCSV() {
