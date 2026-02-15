@@ -192,18 +192,7 @@
   </div>
 </div>
 
-<script src="https://zerojat7-ui.github.io/LibraryJS/cube-engine.js"></script>
-
-<script src="analysis.js"></script>
-
-<script src="recommend.js"></script>
-
-<script src="semiauto.js"></script>
-
-<script src="app.js"></script>
-
-
-            <!-- Firebase compat SDK (v2.0.1 - type=module 제거) -->
+<!-- Firebase compat SDK - app.js 보다 먼저 로드 필수 -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
@@ -215,38 +204,22 @@
         messagingSenderId: "515597545439",
         appId:             "1:515597545439:web:f1e804554406719a3cde6a"
     });
-    var _db = firebase.firestore();
-
-    window.saveToFirebase = async function(data) {
-        try {
-            var uid = localStorage.getItem('lotto_uid');
-            if (!uid) {
-                uid = 'user_' + Math.random().toString(36).slice(2, 10);
-                localStorage.setItem('lotto_uid', uid);
-            }
-            await _db.collection("recommendations").add({
-                userId    : uid,
-                round     : data.round,
-                type      : data.type,
-                numbers   : data.numbers,
-                matchCount: data.matchCount || null,
-                rank      : data.rank || null,
-                createdAt : firebase.firestore.FieldValue.serverTimestamp()
-            });
-            return true;
-        } catch(e) {
-            console.error("Firebase 저장 오류:", e);
-            return false;
-        }
-    };
-
-    window.testSave = async function() {
-        var ok = await window.saveToFirebase({
-            round: 1106, type: "basic", numbers: [1,6,7,25,34,42]
-        });
-        alert(ok ? "DB 저장 완료!" : "저장 실패 - 콘솔 확인");
-    };
+    // app.js의 getFirestoreDb()가 사용할 전역 db
+    window._lottoDB = firebase.firestore();
 </script>
+
+<script src="https://zerojat7-ui.github.io/LibraryJS/cube-engine.js"></script>
+
+<script src="analysis.js"></script>
+
+<script src="recommend.js"></script>
+
+<script src="semiauto.js"></script>
+
+<script src="app.js"></script>
+
+
+
 
 </body>
 </html>
