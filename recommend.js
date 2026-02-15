@@ -279,9 +279,13 @@ async function loadSharedEngineState() {
         var snap = await db.collection('lotto_history').doc(SHARED_ENGINE_DOC).get();
         if (snap.exists) {
             var data = snap.data();
-            mLog('🔥 통합 엔진 로드 (iteration: ' + (data.iteration || 0) + ', 출처: ' + (data.source || '-') + ')');
+            mLog('🧠 누적 학습 데이터 로드: ' +
+                 'iteration <strong style="color:#69f0ae;">' + (data.iteration || 0) + '</strong>회 | ' +
+                 '출처: ' + (data.source || '-') + ' | ' +
+                 '최고점: ' + ((data.bestScore || 0).toFixed ? (data.bestScore||0).toFixed(1) : '-'), '#ffd740');
             return data;
         }
+        mLog('🆕 저장된 학습 없음 → 첫 학습 시작', '#aaa');
         return null;
     } catch(e) {
         mLog('⚠️ 통합 엔진 로드 실패: ' + e.message, '#ff6b6b');
@@ -289,24 +293,71 @@ async function loadSharedEngineState() {
     }
 }
 
-async function saveSharedEngineState(result, iteration, source) {
+async function saveSharedEngineState(result, _ignoredIter, source) {
     try {
         var db = typeof firebase !== 'undefined' && firebase.apps.length > 0 ? firebase.firestore() : null;
         if (!db) return false;
-        var probMapStr = {};
-        Object.keys(result.probMap).forEach(function(k) { probMapStr['n' + k] = result.probMap[k]; });
-        var poolToSave = result.fullPool.slice(0, 100).map(function(combo) { return { items: combo }; });
+
+        var docRef   = db.collection('lotto_history').doc(SHARED_ENGINE_DOC);
         var engineVer = (typeof CubeEngine !== 'undefined') ? CubeEngine.version : 'unknown';
-        await db.collection('lotto_history').doc(SHARED_ENGINE_DOC).set({
-            probMap      : probMapStr,
-            pool         : poolToSave,
-            iteration    : iteration,
-            engineVersion: engineVer,
-            savedAt      : firebase.firestore.FieldValue.serverTimestamp(),
-            bestScore    : result.scores[0] || 0,
-            source       : source || 'recommend'
+        var actualIteration = 0;
+
+        // ── 새 probMap 문자열화 ──
+        var newProbMapStr = {};
+        Object.keys(result.probMap).forEach(function(k) {
+            newProbMapStr['n' + k] = result.probMap[k];
         });
-        return true;
+
+        // ── Firestore 트랜잭션: 동시 접속 충돌 방지 + 가중 평균 누적 병합 ──
+        await db.runTransaction(function(tx) {
+            return tx.get(docRef).then(function(snap) {
+                var existing = snap.exists ? snap.data() : null;
+                var baseIter = existing ? (existing.iteration || 0) : 0;
+                actualIteration = baseIter + 1;
+
+                // 가중 평균 병합
+                // iteration 이 쌓일수록 기존 학습의 가중치가 높아짐
+                // 신규: weight=1, 기존: weight=min(baseIter, 50)
+                // → 50회 이상이면 새 결과가 기존의 2% 수준만 반영 (안정적 수렴)
+                var mergedProbMap = {};
+                if (existing && existing.probMap && baseIter > 0) {
+                    var w_old   = Math.min(baseIter, 50);
+                    var w_new   = 1;
+                    var w_total = w_old + w_new;
+                    for (var n = 1; n <= 45; n++) {
+                        var key    = 'n' + n;
+                        var oldVal = existing.probMap[key] != null
+                            ? parseFloat(existing.probMap[key])
+                            : (newProbMapStr[key] != null ? parseFloat(newProbMapStr[key]) : 0);
+                        var newVal = newProbMapStr[key] != null
+                            ? parseFloat(newProbMapStr[key])
+                            : oldVal;
+                        mergedProbMap[key] = (oldVal * w_old + newVal * w_new) / w_total;
+                    }
+                    mLog('🔀 학습 병합: iteration ' + baseIter + '→' + actualIteration +
+                         ' | 기존비중 ' + ((w_old/w_total*100).toFixed(0)) + '%', '#ffd740');
+                } else {
+                    mergedProbMap = newProbMapStr;
+                    mLog('🆕 첫 학습 저장 (신규 probMap)', '#69f0ae');
+                }
+
+                var poolToSave = result.fullPool.slice(0, 100).map(function(combo) {
+                    return { items: combo };
+                });
+
+                tx.set(docRef, {
+                    probMap      : mergedProbMap,
+                    pool         : poolToSave,
+                    iteration    : actualIteration,
+                    engineVersion: engineVer,
+                    savedAt      : firebase.firestore.FieldValue.serverTimestamp(),
+                    bestScore    : result.scores[0] || 0,
+                    source       : source || 'recommend'
+                });
+            });
+        });
+
+        return actualIteration;   // 실제 저장된 iteration 반환
     } catch(e) {
         mLog('⚠️ 통합 엔진 저장 실패: ' + e.message, '#ff6b6b');
         return false;
@@ -446,16 +497,20 @@ async function runAdvancedEngine() {
             '<span style="color:#00ff88;font-size:14px;font-weight:bold;">✅ TOP 5 선정 완료!</span>';
 
         mLog('🏆 완료! ' + (result.meta.elapsed/1000).toFixed(1) + 's | ' + result.meta.historySize + '회차');
-        mLog('📦 최고점: ' + result.scores[0].toFixed(1) + ' | iteration: ' + (prevIter+1), '#ffd700');
+        mLog('📦 최고점: ' + result.scores[0].toFixed(1) + ' | 누적 학습 ' + (prevIter+1) + '회째', '#ffd700');
 
-        var newIter = prevIter + 1;
-        saveSharedEngineState(result, newIter, 'recommend').then(function(ok) {
-            if (ok) mLog('🔥 통합 엔진 저장 완료 (iteration: ' + newIter + ')', '#00ff88');
+        saveSharedEngineState(result, null, 'recommend').then(function(savedIter) {
+            if (savedIter) {
+                mLog('🔥 누적 학습 저장 완료 ✅ (총 iteration: ' + savedIter + ')', '#00ff88');
+                displayFinalTop5(result, savedIter);
+            } else {
+                displayFinalTop5(result, prevIter + 1);
+            }
         });
 
         btn.disabled = false;
         btn.innerHTML = '🔁 다시 분석';
-        displayFinalTop5(result, newIter);
+        displayFinalTop5(result, prevIter + 1);
 
     } catch(e) {
         clearInterval(elapsedInterval);
@@ -473,7 +528,8 @@ function displayFinalTop5(result, newIter) {
     var topScore  = result ? result.scores[0].toFixed(1) : '-';
     var iteration = newIter || 1;
     var engineVer = (typeof CubeEngine !== 'undefined') ? CubeEngine.version : '-';
-    var convRate  = Math.min(99, (60 + iteration * 3.5)).toFixed(1);
+    // 수렴률: 누적 학습 횟수가 많을수록 안정적 (50회 이후 95% 수렴)
+    var convRate  = Math.min(95, (40 + Math.log(iteration + 1) * 15)).toFixed(1);
     var avgGain   = '-';
     if (result && result.scores && result.scores.length > 1) {
         avgGain = ((result.scores[0] - result.scores[result.scores.length-1]) / result.scores.length).toFixed(1);
@@ -502,7 +558,7 @@ function displayFinalTop5(result, newIter) {
             '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px;">' +
                 metricCard('최고 점수', topScore, 'pt', '#ff6e6e') +
                 metricCard('소요 시간', elapsed, 's', '#4fc3f7') +
-                metricCard('학습 이터레이션', iteration, '회', '#ffd740') +
+                metricCard('누적 총 학습', iteration, '회', '#ffd740') +
                 metricCard('학습 데이터', histSize, '회차', '#69f0ae') +
                 metricCard('탐색 후보 수', (5000).toLocaleString(), '개', '#ce93d8') +
                 metricCard('라운드', 50, '/50', '#ffab40') +

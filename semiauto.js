@@ -95,9 +95,9 @@ async function autoFillTicket(idx) {
             }
             t.autoNums = picked.slice(0, needed);
 
-            // 통합 엔진 상태 저장 (source: 'semi')
-            saveFn(result, prevIter + 1, 'semi').then(function(ok){
-                if (ok) console.log('[SemiEngine] 통합 엔진 저장 완료 iteration:', prevIter + 1);
+            // 통합 엔진 상태 저장 (source: 'semi') - 트랜잭션 누적 학습
+            saveFn(result, null, 'semi').then(function(savedIter){
+                if (savedIter) console.log('[SemiEngine] 누적 학습 저장 완료 ✅ (총 iteration:', savedIter, ')');
             });
 
         } catch(e) {
