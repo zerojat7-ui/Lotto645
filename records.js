@@ -32,6 +32,31 @@ function getUserId() {
     return uid;
 }
 
+// ── LocalStorage만 저장 (Firebase 없음) ──
+function saveForecastLocal(opts) {
+    var records = loadForecastData();
+    
+    if (!records) records = [];
+    var sameType = normalizeType(opts.type);
+    var cycle = records.filter(function(r) {
+        return r.round === opts.round && normalizeType(r.type) === sameType;
+    }).length + 1;
+
+    var entry = {
+        uuid : generateUUID(),
+        round: opts.round,
+        type : sameType,
+        item : opts.numbers || opts.item || [],
+        rank : opts.rank || null,
+        time : new Date().toISOString(),
+        cycle: cycle
+    };
+    
+    records.push(entry);
+    saveForecastData(records);
+    return entry;
+}
+
 // ── type 숫자 → 문자열 변환 (하위 호환) ──
 function normalizeType(type) {
     if (typeof type === 'string') return type;

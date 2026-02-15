@@ -262,27 +262,8 @@ async function saveSelectedRecs() {
 }
 
 // LocalStorage 전용 저장 (Firebase 없이)
-function saveForecastLocal(opts) {
-    var records = loadForecastData();
-    var sameType = normalizeType(opts.type);
-    var cycle = records.filter(function(r) {
-        return r.round === opts.round && normalizeType(r.type) === sameType;
-    }).length + 1;
 
-    var entry = {
-        uuid : generateUUID(),
-        round: opts.round,
-        type : sameType,
-        item : opts.numbers || [],
-        rank : null,
-        time : new Date().toISOString(),
-        cycle: cycle
-    };
-    records.push(entry);
-    saveForecastData(records);
-    return entry;
-}
-
+// saveForecastLocal은 records.js에서 정의됨
 
 function refreshRecommendations() { generateRecommendations(); }
 
