@@ -396,41 +396,70 @@ function renderWinningTab() {
     // 내림차순 복사
     var sorted = lottoData.slice().sort(function(a, b){ return b.round - a.round; });
 
+    // 색상 범위 이름 (표시용)
+    var colorNames = ['황', '청', '적', '흑', '녹'];
+
     var html = '';
     sorted.forEach(function(draw) {
-        var nums = draw.numbers || [];
+        var nums  = draw.numbers || [];
         var bonus = draw.bonus || null;
 
-        // 통계 계산
-        var sorted6 = nums.slice().sort(function(a,b){return a-b;});
-        var sum = sorted6.reduce(function(a,b){return a+b;}, 0);
-        var odd = sorted6.filter(function(n){return n%2===1;}).length;
-        var even = 6 - odd;
-        var low  = sorted6.filter(function(n){return n<=22;}).length;
-        var high = 6 - low;
-        var tailSum = sorted6.reduce(function(a,b){return a+(b%10);}, 0);
-        var ac = typeof calculateAC === 'function' ? calculateAC(sorted6) : '-';
+        var sorted6 = nums.slice().sort(function(a,b){ return a - b; });
 
-        // 번호 볼
+        // ── 기본 통계 ──
+        var sum     = sorted6.reduce(function(a,b){ return a+b; }, 0);
+        var odd     = sorted6.filter(function(n){ return n%2===1; }).length;
+        var even    = 6 - odd;
+        var low     = sorted6.filter(function(n){ return n<=22; }).length;
+        var high    = 6 - low;
+        var tailSum = sorted6.reduce(function(a,b){ return a+(b%10); }, 0);
+        var ac      = typeof calculateAC === 'function' ? calculateAC(sorted6) : '-';
+
+        // ── 색상 통계: 황(1~10) 청(11~20) 적(21~30) 흑(31~40) 녹(41~45) ──
+        var colorCounts = [0, 0, 0, 0, 0]; // 황 청 적 흑 녹
+        sorted6.forEach(function(n) {
+            if      (n <= 10) colorCounts[0]++;
+            else if (n <= 20) colorCounts[1]++;
+            else if (n <= 30) colorCounts[2]++;
+            else if (n <= 40) colorCounts[3]++;
+            else              colorCounts[4]++;
+        });
+        var colorStat = colorCounts.join('+');
+
+        // ── 연속번호 쌍 개수 ──
+        var consecPairs = 0;
+        for (var ci = 0; ci < sorted6.length - 1; ci++) {
+            if (sorted6[ci+1] - sorted6[ci] === 1) consecPairs++;
+        }
+
+        // ── 번호볼 (한 줄, 볼 크기 모바일 최적화) ──
         var ballsHtml = sorted6.map(function(n){
-            return '<div class="lotto-ball '+ballClass(n)+'" style="width:42px;height:42px;font-size:16px;">'+n+'</div>';
+            return '<div class="lotto-ball '+ballClass(n)+'" style="width:38px;height:38px;font-size:14px;flex-shrink:0;">'+n+'</div>';
         }).join('');
         if (bonus) {
-            ballsHtml += '<span style="color:#999;font-size:18px;line-height:42px;margin:0 4px;">+</span>';
-            ballsHtml += '<div class="lotto-ball '+ballClass(bonus)+'" style="width:42px;height:42px;font-size:16px;box-shadow:0 0 0 3px #333,0 3px 8px rgba(0,0,0,0.28);">'+bonus+'</div>';
+            ballsHtml += '<span style="color:#bbb;font-size:16px;line-height:38px;margin:0 2px;flex-shrink:0;">+</span>';
+            ballsHtml += '<div class="lotto-ball '+ballClass(bonus)+'" style="width:38px;height:38px;font-size:14px;flex-shrink:0;box-shadow:0 0 0 2.5px #555,0 2px 6px rgba(0,0,0,0.25);">'+bonus+'</div>';
         }
 
         html +=
-            '<div style="background:white;border:1px solid #e8e8e8;border-radius:14px;padding:16px 14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">' +
-                '<div style="font-size:14px;font-weight:700;color:#333;margin-bottom:12px;">' +
+            '<div style="background:white;border:1px solid #e8e8e8;border-radius:14px;padding:14px 12px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">' +
+                // 회차
+                '<div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px;">' +
                     draw.round + '회차' +
                 '</div>' +
-                '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;">' +
+                // 번호볼 한 줄
+                '<div style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap;overflow-x:auto;margin-bottom:12px;padding-bottom:2px;">' +
                     ballsHtml +
                 '</div>' +
-                '<div style="display:flex;justify-content:space-around;font-size:12px;color:#666;border-top:1px solid #f0f0f0;padding-top:10px;flex-wrap:wrap;gap:4px;">' +
+                // 통계 행 1: 홀짝 고저 색상 연속
+                '<div style="display:flex;justify-content:space-between;font-size:11px;color:#666;margin-bottom:5px;flex-wrap:wrap;gap:3px;">' +
                     '<span>홀짝 <strong style="color:#333;">'+odd+':'+even+'</strong></span>' +
                     '<span>고저 <strong style="color:#333;">'+high+':'+low+'</strong></span>' +
+                    '<span>색상 <strong style="color:#667eea;">'+colorStat+'</strong></span>' +
+                    '<span>연속 <strong style="color:'+(consecPairs>0?'#e53935':'#aaa')+';">'+consecPairs+'쌍</strong></span>' +
+                '</div>' +
+                // 통계 행 2: 끝수합 번호합 AC값
+                '<div style="display:flex;justify-content:space-between;font-size:11px;color:#666;border-top:1px solid #f5f5f5;padding-top:6px;flex-wrap:wrap;gap:3px;">' +
                     '<span>끝수합 <strong style="color:#333;">'+tailSum+'</strong></span>' +
                     '<span>번호합 <strong style="color:#333;">'+sum+'</strong></span>' +
                     '<span>AC값 <strong style="color:#333;">'+ac+'</strong></span>' +
