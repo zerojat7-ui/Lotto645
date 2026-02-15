@@ -4,18 +4,39 @@
 <meta charset="UTF-8">
 <title>로또 1211회 결과</title>
 <style>
-body { font-family: Arial, sans-serif; padding: 30px; }
-button { padding: 10px 15px; margin-right: 10px; }
-table { border-collapse: collapse; margin-top: 20px; }
-td, th { border: 1px solid #ccc; padding: 8px 12px; }
+body {
+    font-family: Arial, sans-serif;
+    padding: 40px;
+    background: #f7f7f7;
+}
+h2 { margin-bottom: 20px; }
+button {
+    padding: 10px 18px;
+    font-size: 16px;
+    cursor: pointer;
+}
+table {
+    border-collapse: collapse;
+    margin-top: 25px;
+    background: white;
+}
+th, td {
+    border: 1px solid #ccc;
+    padding: 10px 14px;
+    text-align: center;
+}
+#error {
+    color: red;
+    margin-top: 15px;
+}
 </style>
 </head>
+
 <body>
 
 <h2>로또 1211회 결과</h2>
-
 <button onclick="loadLotto()">결과 가져오기</button>
-<button onclick="saveCSV()">CSV 저장</button>
+<div id="error"></div>
 
 <table id="resultTable" style="display:none;">
 <thead>
@@ -30,81 +51,62 @@ td, th { border: 1px solid #ccc; padding: 8px 12px; }
 <th>번호6</th>
 <th>보너스</th>
 <th>당첨자수</th>
-<th>금액</th>
+<th>당첨금</th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
 
 <script>
-const DRAW_NO = 1211;
-let lottoData = null;
-
 async function loadLotto() {
-    const url = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${DRAW_NO}`;
-    const res = await fetch(url);
-    const d = await res.json();
+    document.getElementById("error").textContent = "";
 
-    if (d.returnValue !== "success") {
-        alert("데이터를 가져오지 못했습니다.");
-        return;
+    try {
+        const target =
+        "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=1211";
+
+        const proxy =
+        "https://api.allorigins.win/raw?url=" + encodeURIComponent(target);
+
+        const res = await fetch(proxy);
+        const d = await res.json();
+
+        if (d.returnValue !== "success") {
+            throw new Error("데이터 없음");
+        }
+
+        const data = [
+            d.drwNo,
+            d.drwNoDate,
+            d.drwtNo1,
+            d.drwtNo2,
+            d.drwtNo3,
+            d.drwtNo4,
+            d.drwtNo5,
+            d.drwtNo6,
+            d.bnusNo,
+            d.firstPrzwnerCo,
+            d.firstWinamnt.toLocaleString()
+        ];
+
+        const tbody = document.querySelector("#resultTable tbody");
+        tbody.innerHTML = "";
+        const tr = document.createElement("tr");
+
+        data.forEach(v => {
+            const td = document.createElement("td");
+            td.textContent = v;
+            tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+        document.getElementById("resultTable").style.display = "table";
+
+    } catch (e) {
+        document.getElementById("error").textContent =
+        "데이터를 불러오지 못했습니다.";
     }
-
-    lottoData = {
-        회차: d.drwNo,
-        추첨일: d.drwNoDate,
-        번호1: d.drwtNo1,
-        번호2: d.drwtNo2,
-        번호3: d.drwtNo3,
-        번호4: d.drwtNo4,
-        번호5: d.drwtNo5,
-        번호6: d.drwtNo6,
-        보너스: d.bnusNo,
-        당첨자수: d.firstPrzwnerCo,
-        금액: d.firstWinamnt
-    };
-
-    showTable(lottoData);
-    localStorage.setItem("lotto1211", JSON.stringify(lottoData));
 }
-
-function showTable(data) {
-    const table = document.getElementById("resultTable");
-    const tbody = table.querySelector("tbody");
-    tbody.innerHTML = "";
-
-    const row = document.createElement("tr");
-    Object.values(data).forEach(v => {
-        const td = document.createElement("td");
-        td.textContent = v;
-        row.appendChild(td);
-    });
-
-    tbody.appendChild(row);
-    table.style.display = "table";
-}
-
-function saveCSV() {
-    if (!lottoData) {
-        alert("먼저 결과를 가져오세요.");
-        return;
-    }
-
-    const headers = Object.keys(lottoData).join(",");
-    const values = Object.values(lottoData).join(",");
-    const csv = headers + "\n" + values;
-
-    const blob = new Blob([csv], { type: "text/csv" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "lotto_1211.csv";
-    a.click();
-}
-
-window.onload = () => {
-    const saved = localStorage.getItem("lotto1211");
-    if (saved) showTable(JSON.parse(saved));
-};
 </script>
 
 </body>
