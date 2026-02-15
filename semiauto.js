@@ -136,28 +136,86 @@ function updateSemiSaveBtn() {
 }
 
 // ── 완성된 게임 저장 ──
-function saveSemiTickets() {
+async function saveSemiTickets() {
     var labels = ['A','B','C','D','E'];
     var nextRound = lottoData.length>0 ? lottoData[lottoData.length-1].round+1 : 1;
-    var saved = 0;
+
+    // 저장할 티켓 수집
+    var toSave = [];
     semiTickets.forEach(function(t, i) {
         if (!t.done) return;
         var all = t.manualNums.concat(t.autoNums).sort(function(a,b){return a-b;});
         if (all.length !== 6) return;
-        saveForecast({
-            type  : 'semi',     // 반자동
-            round : nextRound,
-            numbers: all,
-            label : labels[i]
-        });
-        saved++;
+        toSave.push({ idx: i, label: labels[i], numbers: all });
     });
-    if (saved > 0) {
-        alert(saved + '게임 저장 완료! 기록탭에서 확인하세요.');
-        goToRecordsTab();
-    } else {
-        alert('저장할 완성된 게임이 없습니다.');
+
+    if (!toSave.length) { alert('저장할 완성된 게임이 없습니다.'); return; }
+
+    // ① 저장 버튼 즉시 비활성
+    var saveBtn = document.getElementById('semiSaveBtn');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ 저장 중...'; }
+
+    // ② 1개씩 저장
+    var saved = 0;
+    for (var i = 0; i < toSave.length; i++) {
+        var item = toSave[i];
+
+        // LocalStorage 저장
+        var entry = saveForecastLocal({
+            type   : 'semi',
+            round  : nextRound,
+            numbers: item.numbers
+        });
+
+        // Firebase 직접 저장
+        var fbOk = false;
+        if (typeof window._lottoDB !== 'undefined' && window._lottoDB) {
+            try {
+                var uid = localStorage.getItem('lotto_uid') || 'user_unknown';
+                await window._lottoDB.collection('recommendations').add({
+                    userId   : uid,
+                    round    : entry.round,
+                    type     : 'semi',
+                    numbers  : entry.item,
+                    cycle    : entry.cycle,
+                    rank     : null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                fbOk = true;
+            } catch(e) {
+                console.error('Firebase semi 저장 오류:', e);
+            }
+        }
+
+        // 해당 티켓 헤더에 저장 완료 표시
+        var ticketEls = document.querySelectorAll('.lotto-ticket');
+        if (ticketEls[item.idx]) {
+            var header = ticketEls[item.idx].querySelector('.ticket-header');
+            if (header) {
+                var badge = document.createElement('span');
+                badge.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:8px;font-weight:bold;';
+                badge.textContent = fbOk ? '🔥 저장됨' : '💾 로컬저장';
+                badge.style.background = fbOk ? '#00C49F' : '#ffd700';
+                badge.style.color = fbOk ? 'white' : '#333';
+                header.appendChild(badge);
+            }
+        }
+        saved++;
     }
+
+    // ③ 저장 버튼 완료 상태
+    if (saveBtn) {
+        saveBtn.textContent = '✅ ' + saved + '게임 저장 완료';
+        saveBtn.disabled = false;
+        saveBtn.style.background = '#00C49F';
+        setTimeout(function() {
+            saveBtn.textContent = '💾 저장';
+            saveBtn.style.background = '';
+            updateSemiSaveBtn();
+        }, 3000);
+    }
+
+    setTimeout(function() { goToRecordsTab(); }, 400);
 }
 
 // ── 렌더링 ──

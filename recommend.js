@@ -108,56 +108,142 @@ function toggleRecSelect(idx, el) {
 function updateRecSaveBtn() {
     var btn = document.getElementById('recSaveBtn');
     if (!btn) return;
-    btn.disabled = selectedRecs.size === 0;
+    var hasSelection = selectedRecs.size > 0 || Object.keys(advSelectedNums).length > 0;
+    btn.disabled = !hasSelection;
 }
-function saveSelectedRecs() {
+async function saveSelectedRecs() {
     var nextRound = lottoData.length > 0 ? lottoData[lottoData.length-1].round + 1 : 1;
-    var saved = 0;
 
-    // 기본추천: selectedRecs Set에서 인덱스로 currentRecommendations 읽기
+    // 저장할 항목 수집
+    var toSave = []; // { cardEl, type, numbers }
+
     selectedRecs.forEach(function(idx) {
         var rec = currentRecommendations[idx];
         if (!rec || !rec.numbers || rec.numbers.length !== 6) return;
-        saveForecast({ type: 'basic', round: nextRound, numbers: rec.numbers });
-        saved++;
+        var el = document.querySelector('[data-rec-idx="'+idx+'"]');
+        toSave.push({ cardEl: el, type: 'basic', numbers: rec.numbers });
     });
-
-    // 고급추천: advSelectedNums 객체에서 읽기
     Object.keys(advSelectedNums).forEach(function(key) {
         var nums = advSelectedNums[key];
         if (!nums || nums.length !== 6) return;
-        saveForecast({ type: 'engine', round: nextRound, numbers: nums });
-        saved++;
+        var el = document.querySelector('[data-adv-idx="'+key+'"]');
+        toSave.push({ cardEl: el, type: 'engine', numbers: nums });
     });
 
-    // 저장된 카드 비활성화 (회색 처리)
-    document.querySelectorAll('.recommendation.selected').forEach(function(el) {
-        el.classList.remove('selected');
-        el.style.opacity = '0.4';
-        el.style.pointerEvents = 'none';
-        el.style.border = '2px solid #ccc';
-        // 저장 완료 뱃지 추가
-        var header = el.querySelector('.rec-header');
-        if (header && !header.querySelector('.saved-badge')) {
-            var badge = document.createElement('span');
-            badge.className = 'saved-badge';
-            badge.style.cssText = 'font-size:11px;background:#00C49F;color:white;padding:2px 8px;border-radius:10px;margin-left:6px;';
-            badge.textContent = '💾 저장됨';
-            header.appendChild(badge);
+    if (toSave.length === 0) {
+        alert('저장할 항목이 없습니다. 조합을 먼저 선택(탭)해주세요.');
+        return;
+    }
+
+    // ① 저장 버튼 즉시 비활성
+    var saveBtn = document.getElementById('recSaveBtn');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ 저장 중...'; }
+
+    // ② 선택된 카드 모두 즉시 비활성 (연타 방지)
+    toSave.forEach(function(item) {
+        if (!item.cardEl) return;
+        item.cardEl.style.opacity = '0.5';
+        item.cardEl.style.pointerEvents = 'none';
+        item.cardEl.classList.remove('selected');
+    });
+
+    // ③ 1개씩 Firebase 저장 + 완료 시 아이콘 표시
+    var saved = 0;
+    for (var i = 0; i < toSave.length; i++) {
+        var item = toSave[i];
+
+        // LocalStorage에 먼저 저장
+        var entry = saveForecastLocal({
+            type   : item.type,
+            round  : nextRound,
+            numbers: item.numbers
+        });
+
+        // Firebase 직접 저장 (await로 결과 확인)
+        var fbOk = false;
+        if (typeof window._lottoDB !== 'undefined' && window._lottoDB) {
+            try {
+                var uid = localStorage.getItem('lotto_uid') || 'user_unknown';
+                await window._lottoDB.collection('recommendations').add({
+                    userId   : uid,
+                    round    : entry.round,
+                    type     : entry.type,
+                    numbers  : entry.item,
+                    cycle    : entry.cycle,
+                    rank     : null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                fbOk = true;
+            } catch(e) {
+                console.error('Firebase 저장 오류:', e);
+            }
         }
-    });
 
-    // 초기화
+        // 해당 카드에 저장 완료 아이콘 표시
+        if (item.cardEl) {
+            var header = item.cardEl.querySelector('.rec-header');
+            if (header) {
+                var badge = document.createElement('span');
+                badge.style.cssText = 'font-size:12px;padding:2px 8px;border-radius:10px;margin-left:6px;font-weight:bold;';
+                if (fbOk) {
+                    badge.textContent = '🔥 저장됨';
+                    badge.style.background = '#00C49F';
+                    badge.style.color = 'white';
+                } else {
+                    badge.textContent = '💾 로컬저장';
+                    badge.style.background = '#ffd700';
+                    badge.style.color = '#333';
+                }
+                header.appendChild(badge);
+            }
+            item.cardEl.style.opacity = '0.4';
+        }
+        saved++;
+    }
+
+    // ④ 상태 초기화
     selectedRecs.clear();
     advSelectedNums = {};
-    updateRecSaveBtn();
 
-    // 저장 결과 표시 후 기록탭 이동
-    if (saved > 0) {
-        goToRecordsTab();
-    } else {
-        alert('저장할 항목이 없습니다. 조합을 먼저 선택(탭)해주세요.');
+    // ⑤ 저장 버튼 활성화 (갱신 가능)
+    if (saveBtn) {
+        saveBtn.textContent = '🔄 갱신 가능';
+        saveBtn.disabled = false;
+        saveBtn.style.background = '#00C49F';
+        // 3초 후 원래 상태로
+        setTimeout(function() {
+            saveBtn.textContent = '💾 저장';
+            saveBtn.style.background = '';
+            updateRecSaveBtn();
+        }, 3000);
     }
+
+    // ⑥ 기록탭으로 이동
+    if (saved > 0) {
+        setTimeout(function() { goToRecordsTab(); }, 400);
+    }
+}
+
+// LocalStorage 전용 저장 (Firebase 없이)
+function saveForecastLocal(opts) {
+    var records = loadForecastData();
+    var sameType = normalizeType(opts.type);
+    var cycle = records.filter(function(r) {
+        return r.round === opts.round && normalizeType(r.type) === sameType;
+    }).length + 1;
+
+    var entry = {
+        uuid : generateUUID(),
+        round: opts.round,
+        type : sameType,
+        item : opts.numbers || [],
+        rank : null,
+        time : new Date().toISOString(),
+        cycle: cycle
+    };
+    records.push(entry);
+    saveForecastData(records);
+    return entry;
 }
 
 
