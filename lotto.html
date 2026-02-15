@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>최신 로또 결과 저장기</title>
+<title>로또 1211회 결과</title>
 <style>
 body { font-family: Arial, sans-serif; padding: 30px; }
 button { padding: 10px 15px; margin-right: 10px; }
@@ -12,9 +12,9 @@ td, th { border: 1px solid #ccc; padding: 8px 12px; }
 </head>
 <body>
 
-<h2>최신 로또 결과</h2>
+<h2>로또 1211회 결과</h2>
 
-<button onclick="loadLatest()">최신 회차 가져오기</button>
+<button onclick="loadLotto()">결과 가져오기</button>
 <button onclick="saveCSV()">CSV 저장</button>
 
 <table id="resultTable" style="display:none;">
@@ -37,26 +37,20 @@ td, th { border: 1px solid #ccc; padding: 8px 12px; }
 </table>
 
 <script>
-let latestData = null;
+const DRAW_NO = 1211;
+let lottoData = null;
 
-// 최신 회차 자동 찾기
-async function getLatestDrawNo() {
-    let no = 1200; // 충분히 큰 숫자부터 시작
-    while (true) {
-        const res = await fetch(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${no}`);
-        const data = await res.json();
-        if (data.returnValue === "fail") return no - 1;
-        no++;
-    }
-}
-
-// 최신 회차 가져오기
-async function loadLatest() {
-    const drawNo = await getLatestDrawNo();
-    const res = await fetch(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drawNo}`);
+async function loadLotto() {
+    const url = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${DRAW_NO}`;
+    const res = await fetch(url);
     const d = await res.json();
 
-    latestData = {
+    if (d.returnValue !== "success") {
+        alert("데이터를 가져오지 못했습니다.");
+        return;
+    }
+
+    lottoData = {
         회차: d.drwNo,
         추첨일: d.drwNoDate,
         번호1: d.drwtNo1,
@@ -70,11 +64,10 @@ async function loadLatest() {
         금액: d.firstWinamnt
     };
 
-    showTable(latestData);
-    localStorage.setItem("latestLotto", JSON.stringify(latestData));
+    showTable(lottoData);
+    localStorage.setItem("lotto1211", JSON.stringify(lottoData));
 }
 
-// 테이블 표시
 function showTable(data) {
     const table = document.getElementById("resultTable");
     const tbody = table.querySelector("tbody");
@@ -91,31 +84,26 @@ function showTable(data) {
     table.style.display = "table";
 }
 
-// CSV 저장
 function saveCSV() {
-    if (!latestData) {
-        alert("먼저 데이터를 가져오세요.");
+    if (!lottoData) {
+        alert("먼저 결과를 가져오세요.");
         return;
     }
 
-    const headers = Object.keys(latestData).join(",");
-    const values = Object.values(latestData).join(",");
+    const headers = Object.keys(lottoData).join(",");
+    const values = Object.values(lottoData).join(",");
     const csv = headers + "\n" + values;
 
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "lotto_latest.csv";
+    a.download = "lotto_1211.csv";
     a.click();
 }
 
-// 페이지 로드 시 저장된 데이터 불러오기
 window.onload = () => {
-    const saved = localStorage.getItem("latestLotto");
-    if (saved) {
-        latestData = JSON.parse(saved);
-        showTable(latestData);
-    }
+    const saved = localStorage.getItem("lotto1211");
+    if (saved) showTable(JSON.parse(saved));
 };
 </script>
 
