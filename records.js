@@ -267,6 +267,19 @@ function _renderRecordsList(container, all) {
         '🗑️ 삭제</button>' +
         '</div></div>';
 
+    // 4개 이상이면 스크롤 컨테이너 열기
+    var useScroll = all.length >= 4;
+    if (useScroll) {
+        html += '<div id="recordsScrollBox" style="' +
+            'max-height:calc(100vh - 260px);' +
+            'overflow-y:auto;' +
+            'overscroll-behavior:contain;' +
+            '-webkit-overflow-scrolling:touch;' +
+            'padding-right:2px;' +
+            'scroll-behavior:smooth;' +
+            '">';
+    }
+
     all.forEach(function(r, idx) {
         var typeKey = normalizeType(r.type);
         var numbers = r.item || r.numbers || [];
@@ -345,6 +358,18 @@ function _renderRecordsList(container, all) {
             '</div>';
     });
 
+    // 스크롤 컨테이너 닫기
+    if (useScroll) {
+        html += '</div>';
+        // 맨 위로 버튼
+        html += '<div style="text-align:center;margin-top:8px;">' +
+            '<button onclick="document.getElementById(\'recordsScrollBox\').scrollTo({top:0,behavior:\'smooth\'})" ' +
+            'style="background:#667eea;color:white;border:none;border-radius:20px;' +
+            'padding:7px 20px;font-size:12px;font-weight:bold;cursor:pointer;' +
+            'box-shadow:0 2px 8px rgba(102,126,234,0.4);">' +
+            '⬆️ 맨 위로</button>' +
+            '</div>';
+    }
     container.innerHTML = html;
     updateRecordSelection();
 }
