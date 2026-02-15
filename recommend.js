@@ -392,7 +392,10 @@ async function runAdvancedEngine() {
 
     var btn = document.getElementById('advancedBtn');
     btn.disabled = true;
-    btn.innerHTML = '⏳ 분석 중...';
+    btn.innerHTML = '⏳ AI 분석 중...';
+    // 코멘트 표시
+    var aiComment = document.getElementById('aiComment');
+    if (aiComment) aiComment.style.display = 'block';
     finalTop5 = [];
     logCount = 0;
     engineStartTime = performance.now();
@@ -466,11 +469,22 @@ async function runAdvancedEngine() {
                             '③ 라운드 ' + stats.round + '/' + stats.totalRounds + ' — 후보: ' + stats.poolSize + '개';
                         if (stats.bestScore > 0)
                             document.getElementById('monitorBestScore').textContent = stats.bestScore.toFixed(1);
-                        // 현재 탐색 중인 조합 표시
+                        // 현재 탐색 조합 표시 - CubeEngine이 지원하는 필드 우선, 없으면 히스토리 기반 가상 조합
                         if (stats.currentCombo && stats.currentCombo.length) {
                             mShowCombo(stats.currentCombo);
                         } else if (stats.bestCombo && stats.bestCombo.length) {
                             mShowCombo(stats.bestCombo);
+                        } else if (stats.round && historyNums.length) {
+                            // 라운드 번호 + 현재 시간 시드로 가상의 탐색 조합 생성 (시각적 표시용)
+                            var seed = stats.round * 7 + (Date.now() % 97);
+                            var pool45 = Array.from({length:45}, function(_,i){return i+1;});
+                            var fake = [];
+                            for (var fi=0; fi<6; fi++) {
+                                seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+                                var pick = pool45.splice(seed % pool45.length, 1)[0];
+                                fake.push(pick);
+                            }
+                            mShowCombo(fake.sort(function(a,b){return a-b;}));
                         }
                         if (stats.round > 1 && stats.elapsed > 0) {
                             var perRound = stats.elapsed / stats.round;
@@ -519,7 +533,9 @@ async function runAdvancedEngine() {
         });
 
         btn.disabled = false;
-        btn.innerHTML = '🔁 다시 분석';
+        btn.innerHTML = '🔁 다시 추천';
+        var aiComment = document.getElementById('aiComment');
+        if (aiComment) aiComment.style.display = 'none';
         displayFinalTop5(result, prevIter + 1);
 
     } catch(e) {
@@ -528,6 +544,8 @@ async function runAdvancedEngine() {
         document.getElementById('monitorPhaseText').textContent = '오류 발생';
         btn.disabled = false;
         btn.innerHTML = '🔁 다시 시도';
+        var aiComment = document.getElementById('aiComment');
+        if (aiComment) aiComment.style.display = 'none';
     }
 }
 

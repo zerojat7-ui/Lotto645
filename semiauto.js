@@ -273,14 +273,14 @@ function renderSemiTickets() {
         grid += '</div>';
 
         var footerMsg = selCount===0 ? '번호 선택 또는 바로 자동완성' :
-                        selCount>=6  ? '6개 선택 완료!' :
+                        selCount>=6  ? '6개 선택 완료! 확정하세요 👆' :
                         (6-selCount)+'개 자동 대기';
-        var autoDisabled = allFull ? ' disabled style="opacity:0.4;cursor:not-allowed;"' : '';
+        // allFull(수동 6개)이어도 확정 버튼 클릭 가능 - done 처리 위해 disabled 제거
         var footer = '<div class="ticket-footer" style="margin-top:8px;">' +
             '<div style="font-size:11px;color:#999;">'+footerMsg+'</div>' +
-            '<button data-autobtn="'+ti+'" onclick="autoFillTicket('+ti+')"'+autoDisabled+
-            ' style="padding:7px 14px;background:#667eea;color:white;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;">' +
-            (selCount>=6?'확정':'🤖 자동완성') + '</button></div>';
+            '<button data-autobtn="'+ti+'" onclick="autoFillTicket('+ti+')"
+            ' style="padding:7px 14px;background:'+(selCount>=6?'#27ae60':'#667eea')+';color:white;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;">' +
+            (selCount>=6?'✅ 확정':'🤖 자동완성') + '</button></div>';
 
         div.innerHTML = header + grid + footer;
         container.appendChild(div);
