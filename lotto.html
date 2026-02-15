@@ -2,107 +2,65 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>로또 1211회 결과</title>
+<title>로또 최신 결과</title>
 <style>
-body { font-family: Arial; padding: 40px; background: #f5f5f5; }
-button { padding: 10px 16px; margin-right: 10px; cursor: pointer; }
-#status { margin-top: 10px; }
-table { border-collapse: collapse; margin-top: 20px; background: white; }
-th, td { border: 1px solid #ccc; padding: 10px 14px; text-align: center; }
+body { font-family: sans-serif; padding: 20px; }
+.ball { display:inline-block; width:40px; height:40px; line-height:40px;
+        border-radius:50%; background:#f2f2f2; margin:5px; text-align:center; }
 </style>
 </head>
-
 <body>
 
-<h2>로또 1211회 결과</h2>
-
-<button onclick="loadLotto()">결과 가져오기</button>
+<h2>로또 최신 결과</h2>
+<div id="result">불러오는 중...</div>
 <button onclick="saveCSV()">CSV 저장</button>
 
-<div id="status">대기 중...</div>
-
-<table id="resultTable" style="display:none;">
-<thead>
-<tr>
-<th>회차</th>
-<th>추첨일</th>
-<th>번호1</th>
-<th>번호2</th>
-<th>번호3</th>
-<th>번호4</th>
-<th>번호5</th>
-<th>번호6</th>
-<th>보너스</th>
-<th>당첨자수</th>
-<th>당첨금</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-
 <script>
-let lottoData = null;
+async function loadLotto() {
+  const url = "https://www.dhlottery.co.kr/gameResult.do?method=byWin";
 
-function loadLotto() {
-    document.getElementById("status").textContent = "불러오는 중...";
+  const res = await fetch(url);
+  const html = await res.text();
 
-    const script = document.createElement("script");
-    script.src =
-    "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=1211&callback=handleLotto";
-    document.body.appendChild(script);
-}
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
 
-function handleLotto(d) {
-    if (d.returnValue !== "success") {
-        document.getElementById("status").textContent = "데이터 없음";
-        return;
-    }
+  const balls = [...doc.querySelectorAll(".ball_645.lrg")].map(v => v.textContent.trim());
+  const round = doc.querySelector("strong")?.textContent.match(/[0-9]+/)[0];
 
-    lottoData = {
-        회차: d.drwNo,
-        추첨일: d.drwNoDate,
-        번호1: d.drwtNo1,
-        번호2: d.drwtNo2,
-        번호3: d.drwtNo3,
-        번호4: d.drwtNo4,
-        번호5: d.drwtNo5,
-        번호6: d.drwtNo6,
-        보너스: d.bnusNo,
-        당첨자수: d.firstPrzwnerCo,
-        당첨금: d.firstWinamnt
-    };
+  if (!balls.length) {
+    document.getElementById("result").textContent = "데이터 추출 실패";
+    return;
+  }
 
-    const tbody = document.querySelector("#resultTable tbody");
-    tbody.innerHTML = "";
+  window.lottoData = {
+    round,
+    numbers: balls.slice(0,6),
+    bonus: balls[6]
+  };
 
-    const tr = document.createElement("tr");
-    Object.values(lottoData).forEach(v => {
-        const td = document.createElement("td");
-        td.textContent = typeof v === "number" ? v.toLocaleString() : v;
-        tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-    document.getElementById("resultTable").style.display = "table";
-    document.getElementById("status").textContent = "불러오기 완료";
+  document.getElementById("result").innerHTML =
+    `<h3>${round}회</h3>` +
+    lottoData.numbers.map(n => `<span class="ball">${n}</span>`).join("") +
+    ` + <span class="ball">${lottoData.bonus}</span>`;
 }
 
 function saveCSV() {
-    if (!lottoData) {
-        alert("먼저 결과를 가져오세요.");
-        return;
-    }
+  if (!window.lottoData) return alert("먼저 불러오기");
 
-    const headers = Object.keys(lottoData).join(",");
-    const values = Object.values(lottoData).join(",");
-    const csv = headers + "\n" + values;
+  const d = lottoData;
+  const csv =
+    "회차,번호1,번호2,번호3,번호4,번호5,번호6,보너스\n" +
+    `${d.round},${d.numbers.join(",")},${d.bonus}`;
 
-    const blob = new Blob([csv], { type: "text/csv" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "lotto_1211.csv";
-    a.click();
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "lotto.csv";
+  a.click();
 }
+
+loadLotto();
 </script>
 
 </body>
