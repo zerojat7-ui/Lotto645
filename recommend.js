@@ -237,7 +237,7 @@ function mLog(msg, color) {
     if (!el) return;
     var d = document.createElement('div');
     d.style.color = color || '#00ff88';
-    d.textContent = '['+new Date().toLocaleTimeString('ko-KR')+'] '+msg;
+    d.innerHTML = '['+new Date().toLocaleTimeString('ko-KR')+'] '+msg;
     el.appendChild(d);
     el.scrollTop = el.scrollHeight;
     logCount++;
@@ -466,6 +466,12 @@ async function runAdvancedEngine() {
                             '③ 라운드 ' + stats.round + '/' + stats.totalRounds + ' — 후보: ' + stats.poolSize + '개';
                         if (stats.bestScore > 0)
                             document.getElementById('monitorBestScore').textContent = stats.bestScore.toFixed(1);
+                        // 현재 탐색 중인 조합 표시
+                        if (stats.currentCombo && stats.currentCombo.length) {
+                            mShowCombo(stats.currentCombo);
+                        } else if (stats.bestCombo && stats.bestCombo.length) {
+                            mShowCombo(stats.bestCombo);
+                        }
                         if (stats.round > 1 && stats.elapsed > 0) {
                             var perRound = stats.elapsed / stats.round;
                             var remaining = Math.round(perRound * (stats.totalRounds - stats.round) / 1000);
@@ -479,9 +485,13 @@ async function runAdvancedEngine() {
                         document.getElementById('monitorETA').textContent = '완료 ✅';
                     }
                 },
-                onRound: function(roundNum, bestScore) {
+                onRound: function(roundNum, bestScore, bestCombo) {
                     if (roundNum % 5 === 0)
                         mLog('✅ ' + roundNum + '/' + totalRounds + ' | 최고점: ' + bestScore.toFixed(1));
+                    // 매 라운드마다 현재 최고 조합 표시
+                    if (bestCombo && bestCombo.length) {
+                        mShowCombo(bestCombo);
+                    }
                 }
             })
         );

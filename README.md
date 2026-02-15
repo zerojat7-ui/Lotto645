@@ -85,6 +85,24 @@ data save 기능 수정
 - 4단계 진행 도트 UI (연결 → 데이터 로드 → 캐싱 → 이동)
 - 어떤 경우에도 main.html로 진입 보장 (데이터 없어도 이동)
 
+## ver 8.7.0
+2026-02-15
+
+### 모니터 UI 버그 수정 (recommend.js, main.html)
+
+**로그 HTML 태그 노출 수정**
+- `mLog()` 내부를 `textContent` → `innerHTML`로 변경
+- `<strong style="color:#69f0ae;">3</strong>` 같은 태그가 글자 그대로 보이던 문제 해결
+- 누적 학습 iteration 숫자가 색상 강조와 함께 정상 렌더링
+
+**현재 탐색 조합 무한 대기 수정**
+- `onProgress` 의 `evolving` 단계에서 `stats.currentCombo` / `stats.bestCombo` 로 `mShowCombo()` 호출 추가
+- `onRound` 콜백에도 `bestCombo` 파라미터 추가 → 매 라운드마다 최고 조합 표시
+
+**분석 버튼 하단 안내 코멘트 추가**
+- 버튼 바로 아래 노란색(`#f5a623`) 소자 텍스트로 표시
+- `⏳ AI가 신중히 선택하므로 다소 시간이 걸립니다`
+
 ## ver 8.6.0
 2026-02-15
 
