@@ -223,15 +223,33 @@ function parseCSV(text) {
     var lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n');
     addLog('총 '+lines.length+'줄 파싱');
     lottoData = [];
+    // 새 형식 자동 감지: 헤더 2번째 컬럼이 날짜 형식(YYYY-MM-DD)이면 신형식
+    var headerLine = lines[0] || '';
+    var headerCols = headerLine.split(',');
+    // 신형식: 회차,추첨일,번호1~6,보너스,... (번호가 [2]~[7]에 위치)
+    // 구형식: 회차,번호1~6,보너스       (번호가 [1]~[6]에 위치)
+    var isNewFormat = headerCols.length >= 9 && /날짜|추첨일|date/i.test(headerCols[1]);
+    var numStart = isNewFormat ? 2 : 1;   // 번호 시작 컬럼 인덱스
+    var bonusIdx = isNewFormat ? 8 : 7;   // 보너스 컬럼 인덱스
+    var dateIdx  = isNewFormat ? 1 : -1;  // 추첨일 컬럼 인덱스 (-1이면 없음)
+    addLog('CSV 형식: ' + (isNewFormat ? '신형식(추첨일 포함)' : '구형식'));
     var start = lines[0].match(/[가-힣a-zA-Z]/) ? 1 : 0;
     for (var i=start; i<lines.length; i++) {
-        var v = lines[i].trim().split(',').map(function(x){return x.trim();});
-        if (v.length >= 7) {
+        var line = lines[i].trim();
+        if (!line) continue;
+        // 따옴표 필드(예: "2,370,956,036 원") 내 쉼표 임시 치환
+        var v = [];
+        var tmp = line.replace(/"[^"]*"/g, function(m){ return m.replace(/,/g, '§'); });
+        tmp.split(',').forEach(function(x){ v.push(x.replace(/§/g, ',').replace(/^"|"$/g, '').trim()); });
+        var minLen = isNewFormat ? 9 : 7;
+        if (v.length >= minLen) {
             var round = parseInt(v[0]);
-            var nums  = v.slice(1,7).map(Number);
+            var nums  = v.slice(numStart, numStart+6).map(Number);
             if (!isNaN(round) && nums.every(function(n){return !isNaN(n)&&n>=1&&n<=45;})) {
-                var bonus = v.length >= 8 ? parseInt(v[7]) || 0 : 0;
-                lottoData.push({ round:round, numbers:nums, bonus:bonus });
+                var bonus = parseInt(v[bonusIdx]) || 0;
+                var obj = { round:round, numbers:nums, bonus:bonus };
+                if (dateIdx >= 0 && v[dateIdx]) obj.date = v[dateIdx];
+                lottoData.push(obj);
             }
         }
     }
@@ -335,8 +353,11 @@ function addNewDraw() {
 // ══════════════════════════════
 function downloadWinCSV() {
     if (!lottoData.length) { alert('데이터 없음'); return; }
-    var csv='\uFEFF회차,번호1,번호2,번호3,번호4,번호5,번호6\n';
-    lottoData.forEach(function(d){csv+=d.round+','+d.numbers.join(',')+'\n';});
+    var csv='\uFEFF회차,추첨일,당첨번호,,,,,, 보너스\n';
+    lottoData.forEach(function(d){
+        var date = d.date || '';
+        csv += d.round + ',' + date + ',' + d.numbers.join(',') + ',' + (d.bonus||0) + '\n';
+    });
     var a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
     a.download='당첨번호.csv'; a.click();

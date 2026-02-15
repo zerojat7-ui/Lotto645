@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>로또 6/45 - 데이터 관리</title>
+  <title>ë¡œë˜ 6/45 - ë°ì´í„° ê´€ë¦¬</title>
   <link rel="stylesheet" href="style.css">
   <style>
     .bonus-label {
@@ -44,105 +44,105 @@
 <div class="container">
 
   <div class="header">
-    <h1>🎰 로또 6/45</h1>
-    <div style="font-size:12px;color:#888;margin-top:4px;">당첨 데이터 관리</div>
+    <h1>ðŸŽ° ë¡œë˜ 6/45</h1>
+    <div style="font-size:12px;color:#888;margin-top:4px;">ë‹¹ì²¨ ë°ì´í„° ê´€ë¦¬</div>
     <div id="latestDraw" style="margin-top:10px;padding:10px;background:#f8f9fa;border-radius:10px;display:none;">
-      <div style="font-size:11px;color:#888;margin-bottom:6px;" id="latestRoundLabel">최신 회차</div>
+      <div style="font-size:11px;color:#888;margin-bottom:6px;" id="latestRoundLabel">ìµœì‹  íšŒì°¨</div>
       <div id="latestBalls" style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;"></div>
     </div>
   </div>
 
   <div class="content">
-    <div class="section-title">🔥 Firebase 데이터 관리</div>
+    <div class="section-title">ðŸ”¥ Firebase ë°ì´í„° ê´€ë¦¬</div>
 
-    <!-- Firebase 상태 표시 -->
-    <div id="fbStatus" class="fb-status info">Firebase 연결 중...</div>
+    <!-- Firebase ìƒíƒœ í‘œì‹œ -->
+    <div id="fbStatus" class="fb-status info">Firebase ì—°ê²° ì¤‘...</div>
 
-    <!-- ── 새 회차 입력 ── -->
+    <!-- â”€â”€ ìƒˆ íšŒì°¨ ìž…ë ¥ â”€â”€ -->
     <div class="analysis-section">
-      <div class="analysis-title">➕ 새 회차 입력</div>
+      <div class="analysis-title">âž• ìƒˆ íšŒì°¨ ìž…ë ¥</div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-        <span style="font-size:14px;color:#666;">다음 회차:</span>
+        <span style="font-size:14px;color:#666;">ë‹¤ìŒ íšŒì°¨:</span>
         <span id="nextRoundDisplay" style="font-size:22px;font-weight:bold;color:#667eea;">-</span>
-        <span style="font-size:14px;color:#666;">회</span>
+        <span style="font-size:14px;color:#666;">íšŒ</span>
       </div>
 
-      <!-- 당첨번호 6개 -->
-      <span class="input-section-label">🎱 당첨번호 (6개)</span>
+      <!-- ë‹¹ì²¨ë²ˆí˜¸ 6ê°œ -->
+      <span class="input-section-label">ðŸŽ± ë‹¹ì²¨ë²ˆí˜¸ (6ê°œ)</span>
       <div class="num-inputs" id="numInputGrid">
-        <button class="num-btn" onclick="openDialog(0)">1번</button>
-        <button class="num-btn" onclick="openDialog(1)">2번</button>
-        <button class="num-btn" onclick="openDialog(2)">3번</button>
-        <button class="num-btn" onclick="openDialog(3)">4번</button>
-        <button class="num-btn" onclick="openDialog(4)">5번</button>
-        <button class="num-btn" onclick="openDialog(5)">6번</button>
+        <button class="num-btn" onclick="openDialog(0)">1ë²ˆ</button>
+        <button class="num-btn" onclick="openDialog(1)">2ë²ˆ</button>
+        <button class="num-btn" onclick="openDialog(2)">3ë²ˆ</button>
+        <button class="num-btn" onclick="openDialog(3)">4ë²ˆ</button>
+        <button class="num-btn" onclick="openDialog(4)">5ë²ˆ</button>
+        <button class="num-btn" onclick="openDialog(5)">6ë²ˆ</button>
       </div>
 
-      <!-- 보너스번호 -->
-      <span class="input-section-label">⭐ 보너스번호</span>
+      <!-- ë³´ë„ˆìŠ¤ë²ˆí˜¸ -->
+      <span class="input-section-label">â­ ë³´ë„ˆìŠ¤ë²ˆí˜¸</span>
       <div class="num-inputs-bonus">
-        <button class="num-btn-bonus" id="bonusBtn" onclick="openBonusDialog()">보너스</button>
+        <button class="num-btn-bonus" id="bonusBtn" onclick="openBonusDialog()">ë³´ë„ˆìŠ¤</button>
       </div>
 
-      <!-- 미리보기 -->
+      <!-- ë¯¸ë¦¬ë³´ê¸° -->
       <div class="draw-preview" id="drawPreview">
-        <span style="color:#ccc;font-size:13px;">번호를 선택하면 미리보기가 나타납니다</span>
+        <span style="color:#ccc;font-size:13px;">ë²ˆí˜¸ë¥¼ ì„ íƒí•˜ë©´ ë¯¸ë¦¬ë³´ê¸°ê°€ ë‚˜íƒ€ë‚©ë‹ˆë‹¤</span>
       </div>
 
-      <button class="btn btn-primary" onclick="addNewDraw()">🔥 Firebase에 저장</button>
+      <button class="btn btn-primary" onclick="addNewDraw()">ðŸ”¥ Firebaseì— ì €ìž¥</button>
     </div>
 
-    <!-- ── CSV 업로드 ── -->
+    <!-- â”€â”€ CSV ì—…ë¡œë“œ â”€â”€ -->
     <div class="analysis-section">
-      <div class="analysis-title">📁 CSV 일괄 업로드</div>
+      <div class="analysis-title">ðŸ“ CSV ì¼ê´„ ì—…ë¡œë“œ</div>
       <div style="font-size:12px;color:#888;margin-bottom:8px;">
-        형식: 회차,번호1,번호2,번호3,번호4,번호5,번호6,보너스
+        형식(신): 회차,추첨일,번호1~6,보너스,당첨게임수,당첨금액 · 형식(구): 회차,번호1~6,보너스 (자동인식)
       </div>
       <label for="csvFile" style="display:block;padding:13px;background:#8884D8;color:white;border-radius:10px;text-align:center;cursor:pointer;font-weight:bold;margin-bottom:4px;">
-        📄 당첨번호.csv 선택
+        ðŸ“„ ë‹¹ì²¨ë²ˆí˜¸.csv ì„ íƒ
       </label>
       <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleFileUpload(event)">
     </div>
 
-    <!-- 결과 표시 -->
+    <!-- ê²°ê³¼ í‘œì‹œ -->
     <div id="importSuccess" class="alert alert-success hidden"></div>
 
-    <!-- ── Firebase 현황 ── -->
+    <!-- â”€â”€ Firebase í˜„í™© â”€â”€ -->
     <div class="analysis-section">
-      <div class="analysis-title">📊 Firebase 현황</div>
-      <div id="fbSummary" style="font-size:13px;color:#666;">로딩 중...</div>
+      <div class="analysis-title">ðŸ“Š Firebase í˜„í™©</div>
+      <div id="fbSummary" style="font-size:13px;color:#666;">ë¡œë”© ì¤‘...</div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-        <button class="btn btn-secondary" style="flex:1;margin:0;" onclick="refreshFbSummary()">🔄 현황 갱신</button>
-        <button class="btn btn-secondary" style="flex:1;margin:0;" onclick="downloadWinCSV()">⬇️ CSV 다운로드</button>
+        <button class="btn btn-secondary" style="flex:1;margin:0;" onclick="refreshFbSummary()">ðŸ”„ í˜„í™© ê°±ì‹ </button>
+        <button class="btn btn-secondary" style="flex:1;margin:0;" onclick="downloadWinCSV()">â¬‡ï¸ CSV ë‹¤ìš´ë¡œë“œ</button>
       </div>
     </div>
 
-    <!-- 로그 -->
+    <!-- ë¡œê·¸ -->
     <div id="statusBoard" class="alert alert-info hidden">
-      <div style="font-weight:bold;margin-bottom:6px;">📋 로그</div>
+      <div style="font-weight:bold;margin-bottom:6px;">ðŸ“‹ ë¡œê·¸</div>
       <div id="statusLog" style="font-size:12px;font-family:monospace;line-height:1.6;max-height:180px;overflow-y:auto;"></div>
     </div>
 
   </div>
 </div>
 
-<!-- 번호 선택 다이얼로그 -->
+<!-- ë²ˆí˜¸ ì„ íƒ ë‹¤ì´ì–¼ë¡œê·¸ -->
 <div id="dialogOverlay" class="dialog-overlay hidden" onclick="closeDialogOutside(event)">
   <div class="dialog-box" onclick="event.stopPropagation()">
-    <div class="dialog-title" id="dialogTitle">번호 선택</div>
+    <div class="dialog-title" id="dialogTitle">ë²ˆí˜¸ ì„ íƒ</div>
     <div class="dialog-grid" id="dialogGrid"></div>
     <div class="dialog-actions">
-      <button class="d-cancel"  onclick="closeDialog()">취소</button>
-      <button class="d-confirm" onclick="confirmDialog()">확인</button>
+      <button class="d-cancel"  onclick="closeDialog()">ì·¨ì†Œ</button>
+      <button class="d-confirm" onclick="confirmDialog()">í™•ì¸</button>
     </div>
   </div>
 </div>
 
-<!-- Firebase SDK (스크립트 최상단 로드 필수) -->
+<!-- Firebase SDK (ìŠ¤í¬ë¦½íŠ¸ ìµœìƒë‹¨ ë¡œë“œ í•„ìˆ˜) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
-// ── Firebase 초기화 ──
+// â”€â”€ Firebase ì´ˆê¸°í™” â”€â”€
 firebase.initializeApp({
     apiKey:            "AIzaSyB4S8qkK07QYXq5yw0Coo69sZBIk0uew2E",
     authDomain:        "randextraccube-engine.firebaseapp.com",
@@ -165,7 +165,7 @@ var dialogSlot  = -1;
 var dialogMode  = 'normal'; // 'normal' | 'bonus'
 var dialogTempVal = null;
 
-// ── 공 색상 클래스 ──
+// â”€â”€ ê³µ ìƒ‰ìƒ í´ëž˜ìŠ¤ â”€â”€
 function ballClass(n) {
     if (n <= 10) return 'r1';
     if (n <= 20) return 'r2';
@@ -174,13 +174,13 @@ function ballClass(n) {
     return 'r5';
 }
 
-// ── 로그 ──
+// â”€â”€ ë¡œê·¸ â”€â”€
 function addLog(msg, type) {
     var board = document.getElementById('statusBoard');
     var log   = document.getElementById('statusLog');
     if (!board || !log) return;
     board.classList.remove('hidden');
-    var icon  = type==='success'?'✅':type==='error'?'❌':'ℹ️';
+    var icon  = type==='success'?'âœ…':type==='error'?'âŒ':'â„¹ï¸';
     var color = type==='success'?'#155724':type==='error'?'#721c24':'#0c5460';
     var d = document.createElement('div');
     d.style.color = color;
@@ -196,7 +196,7 @@ function showFbStatus(msg, type) {
     el.style.display = 'block';
 }
 
-// ── Firebase에서 history 로드 ──
+// â”€â”€ Firebaseì—ì„œ history ë¡œë“œ â”€â”€
 async function loadFromFirebase() {
     try {
         var snap = await db.collection(FB_COLLECTION).doc(FB_HISTORY_DOC).get();
@@ -208,12 +208,12 @@ async function loadFromFirebase() {
         }
         return [];
     } catch(e) {
-        addLog('Firebase 로드 실패: ' + e.message, 'error');
+        addLog('Firebase ë¡œë“œ ì‹¤íŒ¨: ' + e.message, 'error');
         return [];
     }
 }
 
-// ── Firebase에 history 전체 저장 ──
+// â”€â”€ Firebaseì— history ì „ì²´ ì €ìž¥ â”€â”€
 async function saveHistoryToFirebase() {
     if (!lottoData.length) return false;
     try {
@@ -222,25 +222,25 @@ async function saveHistoryToFirebase() {
             count    : lottoData.length,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        // LocalStorage도 동기화
+        // LocalStorageë„ ë™ê¸°í™”
         localStorage.setItem(LS_KEY, JSON.stringify({
             savedAt: new Date().toISOString(),
             data   : lottoData
         }));
         return true;
     } catch(e) {
-        addLog('Firebase 저장 실패: ' + e.message, 'error');
+        addLog('Firebase ì €ìž¥ ì‹¤íŒ¨: ' + e.message, 'error');
         return false;
     }
 }
 
-// ── 다음 회차 표시 갱신 ──
+// â”€â”€ ë‹¤ìŒ íšŒì°¨ í‘œì‹œ ê°±ì‹  â”€â”€
 function updateNextRoundDisplay() {
     var next = lottoData.length > 0 ? lottoData[lottoData.length-1].round + 1 : 1;
     document.getElementById('nextRoundDisplay').textContent = next;
 }
 
-// ── 최신 회차 헤더 표시 ──
+// â”€â”€ ìµœì‹  íšŒì°¨ í—¤ë” í‘œì‹œ â”€â”€
 function updateLatestHeader() {
     if (!lottoData.length) return;
     var last = lottoData[lottoData.length-1];
@@ -249,7 +249,7 @@ function updateLatestHeader() {
     var balls = document.getElementById('latestBalls');
     if (!wrap) return;
     wrap.style.display = 'block';
-    lbl.textContent = last.round + '회차';
+    lbl.textContent = last.round + 'íšŒì°¨';
     balls.innerHTML = '';
     last.numbers.forEach(function(n) {
         var d = document.createElement('div');
@@ -270,10 +270,10 @@ function updateLatestHeader() {
     }
 }
 
-// ── Firebase 현황 표시 ──
+// â”€â”€ Firebase í˜„í™© í‘œì‹œ â”€â”€
 async function refreshFbSummary() {
     var el = document.getElementById('fbSummary');
-    el.textContent = '로딩 중...';
+    el.textContent = 'ë¡œë”© ì¤‘...';
     try {
         var snap = await db.collection(FB_COLLECTION).doc(FB_HISTORY_DOC).get();
         if (snap.exists) {
@@ -283,23 +283,23 @@ async function refreshFbSummary() {
             var first = data.draws && data.draws[0] ? data.draws[0].round : '-';
             var last  = data.draws && data.draws.length > 0 ? data.draws[data.draws.length-1].round : '-';
             el.innerHTML =
-                '총 <strong>' + cnt + '</strong>회차 저장됨<br>' +
-                '범위: <strong>' + first + '~' + last + '</strong>회<br>' +
-                '최근 업데이트: ' + upd;
+                'ì´ <strong>' + cnt + '</strong>íšŒì°¨ ì €ìž¥ë¨<br>' +
+                'ë²”ìœ„: <strong>' + first + '~' + last + '</strong>íšŒ<br>' +
+                'ìµœê·¼ ì—…ë°ì´íŠ¸: ' + upd;
         } else {
-            el.textContent = '저장된 데이터 없음';
+            el.textContent = 'ì €ìž¥ëœ ë°ì´í„° ì—†ìŒ';
         }
     } catch(e) {
-        el.textContent = '조회 실패: ' + e.message;
+        el.textContent = 'ì¡°íšŒ ì‹¤íŒ¨: ' + e.message;
     }
 }
 
-// ── 미리보기 갱신 ──
+// â”€â”€ ë¯¸ë¦¬ë³´ê¸° ê°±ì‹  â”€â”€
 function updatePreview() {
     var preview = document.getElementById('drawPreview');
     var nums = inputNums.filter(function(n){ return n !== null; });
     if (!nums.length && !bonusNum) {
-        preview.innerHTML = '<span style="color:#ccc;font-size:13px;">번호를 선택하면 미리보기가 나타납니다</span>';
+        preview.innerHTML = '<span style="color:#ccc;font-size:13px;">ë²ˆí˜¸ë¥¼ ì„ íƒí•˜ë©´ ë¯¸ë¦¬ë³´ê¸°ê°€ ë‚˜íƒ€ë‚©ë‹ˆë‹¤</span>';
         return;
     }
     var html = nums.map(function(n){
@@ -312,23 +312,23 @@ function updatePreview() {
     preview.innerHTML = html;
 }
 
-// ── 새 회차 저장 ──
+// â”€â”€ ìƒˆ íšŒì°¨ ì €ìž¥ â”€â”€
 async function addNewDraw() {
     var round = lottoData.length > 0 ? lottoData[lottoData.length-1].round + 1 : 1;
     if (inputNums.some(function(n){ return n === null; })) {
-        alert('당첨번호 6개를 모두 입력해주세요.');
+        alert('ë‹¹ì²¨ë²ˆí˜¸ 6ê°œë¥¼ ëª¨ë‘ ìž…ë ¥í•´ì£¼ì„¸ìš”.');
         return;
     }
     if (new Set(inputNums).size !== 6) {
-        alert('중복된 번호가 있습니다.');
+        alert('ì¤‘ë³µëœ ë²ˆí˜¸ê°€ ìžˆìŠµë‹ˆë‹¤.');
         return;
     }
     if (bonusNum && inputNums.indexOf(bonusNum) >= 0) {
-        alert('보너스번호가 당첨번호와 중복됩니다.');
+        alert('ë³´ë„ˆìŠ¤ë²ˆí˜¸ê°€ ë‹¹ì²¨ë²ˆí˜¸ì™€ ì¤‘ë³µë©ë‹ˆë‹¤.');
         return;
     }
     if (lottoData.some(function(d){ return d.round === round; })) {
-        addLog(round + '회는 이미 존재합니다.', 'error');
+        addLog(round + 'íšŒëŠ” ì´ë¯¸ ì¡´ìž¬í•©ë‹ˆë‹¤.', 'error');
         return;
     }
 
@@ -337,13 +337,13 @@ async function addNewDraw() {
     lottoData.sort(function(a,b){ return a.round - b.round; });
 
     var btn = document.querySelector('[onclick="addNewDraw()"]');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ 저장 중...'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'â³ ì €ìž¥ ì¤‘...'; }
 
     var ok = await saveHistoryToFirebase();
     if (ok) {
-        showFbStatus('✅ ' + round + '회 Firebase 저장 완료', 'ok');
-        addLog(round + '회 저장 완료 (보너스: ' + (bonusNum || '없음') + ')', 'success');
-        // 입력 초기화
+        showFbStatus('âœ… ' + round + 'íšŒ Firebase ì €ìž¥ ì™„ë£Œ', 'ok');
+        addLog(round + 'íšŒ ì €ìž¥ ì™„ë£Œ (ë³´ë„ˆìŠ¤: ' + (bonusNum || 'ì—†ìŒ') + ')', 'success');
+        // ìž…ë ¥ ì´ˆê¸°í™”
         inputNums = [null, null, null, null, null, null];
         bonusNum  = null;
         refreshNumBtns();
@@ -352,19 +352,19 @@ async function addNewDraw() {
         updatePreview();
         refreshFbSummary();
     } else {
-        // 실패 시 lottoData에서 제거
+        // ì‹¤íŒ¨ ì‹œ lottoDataì—ì„œ ì œê±°
         lottoData.pop();
-        showFbStatus('❌ Firebase 저장 실패', 'err');
+        showFbStatus('âŒ Firebase ì €ìž¥ ì‹¤íŒ¨', 'err');
     }
 
-    if (btn) { btn.disabled = false; btn.textContent = '🔥 Firebase에 저장'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'ðŸ”¥ Firebaseì— ì €ìž¥'; }
 }
 
-// ── CSV 업로드 ──
+// â”€â”€ CSV ì—…ë¡œë“œ â”€â”€
 function handleFileUpload(event) {
     var file = event.target.files[0];
     if (!file) return;
-    addLog('파일: ' + file.name);
+    addLog('íŒŒì¼: ' + file.name);
     var reader = new FileReader();
     reader.onload = function(e) { parseCSV(e.target.result); };
     reader.readAsText(file, 'UTF-8');
@@ -374,23 +374,36 @@ function parseCSV(text) {
     var lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n');
     addLog('총 ' + lines.length + '줄 파싱');
     var parsed = [];
+    var headerCols = (lines[0] || '').split(',');
+    var isNewFormat = headerCols.length >= 9 && /날짜|추첨일|date/i.test(headerCols[1]);
+    var numStart = isNewFormat ? 2 : 1;
+    var bonusIdx = isNewFormat ? 8 : 7;
+    var dateIdx  = isNewFormat ? 1 : -1;
+    addLog('CSV 형식: ' + (isNewFormat ? '신형식(추첨일 포함)' : '구형식'));
     var start = lines[0].match(/[가-힣a-zA-Z]/) ? 1 : 0;
     for (var i = start; i < lines.length; i++) {
-        var v = lines[i].trim().split(',').map(function(x){ return x.trim(); });
-        if (v.length >= 7) {
+        var line = lines[i].trim();
+        if (!line) continue;
+        var v = [];
+        var tmp = line.replace(/"[^"]*"/g, function(m){ return m.replace(/,/g, '§'); });
+        tmp.split(',').forEach(function(x){ v.push(x.replace(/§/g, ',').replace(/^"|"$/g, '').trim()); });
+        var minLen = isNewFormat ? 9 : 7;
+        if (v.length >= minLen) {
             var round = parseInt(v[0]);
-            var nums  = v.slice(1,7).map(Number);
+            var nums  = v.slice(numStart, numStart+6).map(Number);
             if (!isNaN(round) && nums.every(function(n){ return !isNaN(n) && n >= 1 && n <= 45; })) {
-                var bonus = v.length >= 8 ? parseInt(v[7]) || 0 : 0;
-                parsed.push({ round: round, numbers: nums, bonus: bonus });
+                var bonus = parseInt(v[bonusIdx]) || 0;
+                var obj = { round: round, numbers: nums, bonus: bonus };
+                if (dateIdx >= 0 && v[dateIdx]) obj.date = v[dateIdx];
+                parsed.push(obj);
             }
         }
     }
     if (!parsed.length) { addLog('유효한 데이터 없음', 'error'); return; }
 
-    addLog(parsed.length + '개 회차 파싱 완료', 'success');
+    addLog(parsed.length + 'ê°œ íšŒì°¨ íŒŒì‹± ì™„ë£Œ', 'success');
 
-    // 기존 데이터와 병합 (중복 회차 덮어쓰기)
+    // ê¸°ì¡´ ë°ì´í„°ì™€ ë³‘í•© (ì¤‘ë³µ íšŒì°¨ ë®ì–´ì“°ê¸°)
     parsed.forEach(function(d) {
         var idx = lottoData.findIndex(function(x){ return x.round === d.round; });
         if (idx >= 0) { lottoData[idx] = d; }
@@ -400,66 +413,66 @@ function parseCSV(text) {
 
     var importEl = document.getElementById('importSuccess');
     if (importEl) {
-        importEl.innerHTML = '✅ <strong>' + lottoData.length + '</strong>개 회차 병합 완료';
+        importEl.innerHTML = 'âœ… <strong>' + lottoData.length + '</strong>ê°œ íšŒì°¨ ë³‘í•© ì™„ë£Œ';
         importEl.classList.remove('hidden');
     }
 
-    showFbStatus('⏳ Firebase에 업로드 중... (' + lottoData.length + '회차)', 'info');
+    showFbStatus('â³ Firebaseì— ì—…ë¡œë“œ ì¤‘... (' + lottoData.length + 'íšŒì°¨)', 'info');
     saveHistoryToFirebase().then(function(ok) {
         if (ok) {
-            showFbStatus('✅ Firebase 업로드 완료 (' + lottoData.length + '회차)', 'ok');
-            addLog('Firebase 업로드 완료', 'success');
+            showFbStatus('âœ… Firebase ì—…ë¡œë“œ ì™„ë£Œ (' + lottoData.length + 'íšŒì°¨)', 'ok');
+            addLog('Firebase ì—…ë¡œë“œ ì™„ë£Œ', 'success');
             updateNextRoundDisplay();
             updateLatestHeader();
             refreshFbSummary();
         } else {
-            showFbStatus('❌ Firebase 업로드 실패 (로컬에는 저장됨)', 'err');
+            showFbStatus('âŒ Firebase ì—…ë¡œë“œ ì‹¤íŒ¨ (ë¡œì»¬ì—ëŠ” ì €ìž¥ë¨)', 'err');
         }
     });
 }
 
-// ── CSV 다운로드 ──
+// â”€â”€ CSV ë‹¤ìš´ë¡œë“œ â”€â”€
 function downloadWinCSV() {
-    if (!lottoData.length) { alert('데이터 없음'); return; }
-    var csv = '\uFEFF회차,번호1,번호2,번호3,번호4,번호5,번호6,보너스\n';
+    if (!lottoData.length) { alert('ë°ì´í„° ì—†ìŒ'); return; }
+    var csv = '\uFEFFíšŒì°¨,ë²ˆí˜¸1,ë²ˆí˜¸2,ë²ˆí˜¸3,ë²ˆí˜¸4,ë²ˆí˜¸5,ë²ˆí˜¸6,ë³´ë„ˆìŠ¤\n';
     lottoData.forEach(function(d){
         csv += d.round + ',' + d.numbers.join(',') + ',' + (d.bonus || 0) + '\n';
     });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
-    a.download = '당첨번호.csv';
+    a.download = 'ë‹¹ì²¨ë²ˆí˜¸.csv';
     a.click();
 }
 
-// ── LocalStorage 저장 데이터 로드 버튼 ──
+// â”€â”€ LocalStorage ì €ìž¥ ë°ì´í„° ë¡œë“œ ë²„íŠ¼ â”€â”€
 function loadFromLS() {
     try {
         var raw = localStorage.getItem(LS_KEY);
-        if (!raw) { showFbStatus('저장된 로컬 데이터 없음', 'info'); return; }
+        if (!raw) { showFbStatus('ì €ìž¥ëœ ë¡œì»¬ ë°ì´í„° ì—†ìŒ', 'info'); return; }
         var obj = JSON.parse(raw);
-        if (!obj.data || !obj.data.length) { showFbStatus('로컬 데이터 비어있음', 'info'); return; }
+        if (!obj.data || !obj.data.length) { showFbStatus('ë¡œì»¬ ë°ì´í„° ë¹„ì–´ìžˆìŒ', 'info'); return; }
         lottoData = obj.data;
         updateNextRoundDisplay();
         updateLatestHeader();
-        showFbStatus('📂 로컬에서 ' + lottoData.length + '회차 로드 완료', 'ok');
-        addLog('LocalStorage에서 ' + lottoData.length + '회차 로드', 'success');
-    } catch(e) { showFbStatus('로컬 로드 실패: ' + e.message, 'err'); }
+        showFbStatus('ðŸ“‚ ë¡œì»¬ì—ì„œ ' + lottoData.length + 'íšŒì°¨ ë¡œë“œ ì™„ë£Œ', 'ok');
+        addLog('LocalStorageì—ì„œ ' + lottoData.length + 'íšŒì°¨ ë¡œë“œ', 'success');
+    } catch(e) { showFbStatus('ë¡œì»¬ ë¡œë“œ ì‹¤íŒ¨: ' + e.message, 'err'); }
 }
 
 function clearLS() {
-    if (!confirm('로컬 저장 데이터를 삭제할까요?\n(Firebase 데이터는 유지됩니다)')) return;
+    if (!confirm('ë¡œì»¬ ì €ìž¥ ë°ì´í„°ë¥¼ ì‚­ì œí• ê¹Œìš”?\n(Firebase ë°ì´í„°ëŠ” ìœ ì§€ë©ë‹ˆë‹¤)')) return;
     localStorage.removeItem(LS_KEY);
-    showFbStatus('🗑️ 로컬 캐시 삭제됨', 'info');
+    showFbStatus('ðŸ—‘ï¸ ë¡œì»¬ ìºì‹œ ì‚­ì œë¨', 'info');
 }
 
-// ── 다이얼로그 ──
+// â”€â”€ ë‹¤ì´ì–¼ë¡œê·¸ â”€â”€
 function openDialog(slot) {
     dialogSlot    = slot;
     dialogMode    = 'normal';
     dialogTempVal = inputNums[slot];
     var used = inputNums.filter(function(n,i){ return n !== null && i !== slot; });
     if (bonusNum) used.push(bonusNum);
-    document.getElementById('dialogTitle').textContent = (slot+1) + '번째 번호 선택';
+    document.getElementById('dialogTitle').textContent = (slot+1) + 'ë²ˆì§¸ ë²ˆí˜¸ ì„ íƒ';
     buildDialogGrid(used);
     document.getElementById('dialogOverlay').classList.remove('hidden');
 }
@@ -468,7 +481,7 @@ function openBonusDialog() {
     dialogMode    = 'bonus';
     dialogTempVal = bonusNum;
     var used = inputNums.filter(function(n){ return n !== null; });
-    document.getElementById('dialogTitle').textContent = '⭐ 보너스번호 선택';
+    document.getElementById('dialogTitle').textContent = 'â­ ë³´ë„ˆìŠ¤ë²ˆí˜¸ ì„ íƒ';
     buildDialogGrid(used);
     document.getElementById('dialogOverlay').classList.remove('hidden');
 }
@@ -502,7 +515,7 @@ function confirmDialog() {
             btn.textContent = bonusNum;
             btn.classList.add('filled');
         } else {
-            btn.textContent = '보너스';
+            btn.textContent = 'ë³´ë„ˆìŠ¤';
             btn.classList.remove('filled');
         }
     } else {
@@ -528,49 +541,49 @@ function refreshNumBtns() {
     inputNums.forEach(function(val, i) {
         if (!btns[i]) return;
         if (val !== null) { btns[i].textContent = val; btns[i].classList.add('filled'); }
-        else { btns[i].textContent = (i+1) + '번'; btns[i].classList.remove('filled'); }
+        else { btns[i].textContent = (i+1) + 'ë²ˆ'; btns[i].classList.remove('filled'); }
     });
-    // 보너스 버튼 초기화
+    // ë³´ë„ˆìŠ¤ ë²„íŠ¼ ì´ˆê¸°í™”
     var bonusBtn = document.getElementById('bonusBtn');
     if (bonusBtn) {
         if (bonusNum !== null) { bonusBtn.textContent = bonusNum; bonusBtn.classList.add('filled'); }
-        else { bonusBtn.textContent = '보너스'; bonusBtn.classList.remove('filled'); }
+        else { bonusBtn.textContent = 'ë³´ë„ˆìŠ¤'; bonusBtn.classList.remove('filled'); }
     }
 }
 
-// ── 페이지 초기화 ──
+// â”€â”€ íŽ˜ì´ì§€ ì´ˆê¸°í™” â”€â”€
 window.addEventListener('load', async function() {
-    showFbStatus('🔥 Firebase 연결 중...', 'info');
+    showFbStatus('ðŸ”¥ Firebase ì—°ê²° ì¤‘...', 'info');
     try {
-        // Firebase에서 현재 데이터 로드
+        // Firebaseì—ì„œ í˜„ìž¬ ë°ì´í„° ë¡œë“œ
         var fbData = await loadFromFirebase();
         if (fbData && fbData.length > 0) {
             lottoData = fbData;
-            showFbStatus('✅ Firebase 연결 완료 (' + lottoData.length + '회차 로드)', 'ok');
-            addLog('Firebase에서 ' + lottoData.length + '회차 로드 완료', 'success');
+            showFbStatus('âœ… Firebase ì—°ê²° ì™„ë£Œ (' + lottoData.length + 'íšŒì°¨ ë¡œë“œ)', 'ok');
+            addLog('Firebaseì—ì„œ ' + lottoData.length + 'íšŒì°¨ ë¡œë“œ ì™„ë£Œ', 'success');
         } else {
-            // Firebase 비어있으면 LocalStorage 확인
+            // Firebase ë¹„ì–´ìžˆìœ¼ë©´ LocalStorage í™•ì¸
             try {
                 var raw = localStorage.getItem(LS_KEY);
                 if (raw) {
                     var obj = JSON.parse(raw);
                     if (obj.data && obj.data.length > 0) {
                         lottoData = obj.data;
-                        showFbStatus('📂 로컬 데이터 로드 (' + lottoData.length + '회차) — Firebase는 비어있음', 'info');
-                        addLog('LocalStorage에서 ' + lottoData.length + '회차 로드 (Firebase 비어있음)', 'success');
+                        showFbStatus('ðŸ“‚ ë¡œì»¬ ë°ì´í„° ë¡œë“œ (' + lottoData.length + 'íšŒì°¨) â€” FirebaseëŠ” ë¹„ì–´ìžˆìŒ', 'info');
+                        addLog('LocalStorageì—ì„œ ' + lottoData.length + 'íšŒì°¨ ë¡œë“œ (Firebase ë¹„ì–´ìžˆìŒ)', 'success');
                     } else {
-                        showFbStatus('⚠️ Firebase와 로컬 모두 데이터 없음. CSV를 업로드하세요.', 'info');
+                        showFbStatus('âš ï¸ Firebaseì™€ ë¡œì»¬ ëª¨ë‘ ë°ì´í„° ì—†ìŒ. CSVë¥¼ ì—…ë¡œë“œí•˜ì„¸ìš”.', 'info');
                     }
                 } else {
-                    showFbStatus('⚠️ 저장된 데이터 없음. CSV를 업로드하세요.', 'info');
+                    showFbStatus('âš ï¸ ì €ìž¥ëœ ë°ì´í„° ì—†ìŒ. CSVë¥¼ ì—…ë¡œë“œí•˜ì„¸ìš”.', 'info');
                 }
             } catch(e) {
-                showFbStatus('⚠️ 데이터 없음', 'info');
+                showFbStatus('âš ï¸ ë°ì´í„° ì—†ìŒ', 'info');
             }
         }
     } catch(e) {
-        showFbStatus('❌ Firebase 연결 실패: ' + e.message, 'err');
-        addLog('Firebase 연결 실패: ' + e.message, 'error');
+        showFbStatus('âŒ Firebase ì—°ê²° ì‹¤íŒ¨: ' + e.message, 'err');
+        addLog('Firebase ì—°ê²° ì‹¤íŒ¨: ' + e.message, 'error');
     }
 
     updateNextRoundDisplay();
