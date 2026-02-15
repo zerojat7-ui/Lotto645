@@ -227,7 +227,12 @@ async function saveSelectedRecs() {
     }
 }
 
-function refreshRecommendations() { generateRecommendations(); }
+async function refreshRecommendations() {
+    if (typeof usePoints === 'function') {
+        if (!await usePoints(5, '기본추천 갱신')) return;
+    }
+    generateRecommendations();
+}
 
 // ────────────────────────────────────
 //  모니터 UI 헬퍼
@@ -388,6 +393,10 @@ async function runAdvancedEngine() {
     if (typeof CubeEngine === 'undefined') {
         alert('CubeEngine 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
         return;
+    }
+    // 고급추천 1회: 50p
+    if (typeof usePoints === 'function') {
+        if (!await usePoints(50, '고급추천 실행')) return;
     }
 
     var btn = document.getElementById('advancedBtn');

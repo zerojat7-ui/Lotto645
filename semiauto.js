@@ -46,6 +46,11 @@ async function autoFillTicket(idx) {
         return;
     }
 
+    // 반자동 자동번호 1개당 2p 차감
+    if (typeof usePoints === 'function') {
+        if (!await usePoints(needed * 2, '반자동 자동번호 ' + needed + '개')) return;
+    }
+
     var btn = document.querySelector('[data-autobtn="'+idx+'"]');
     if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
 
@@ -172,7 +177,9 @@ async function saveSemiTickets() {
         if (!t.done) return;
         var all = t.manualNums.concat(t.autoNums).sort(function(a,b){return a-b;});
         if (all.length !== 6) return;
-        toSave.push({ idx: i, label: labels[i], numbers: all });
+        // 수동 6개 전부 선택된 경우 type을 'manual'로 구분
+        var saveType = (t.manualNums.length >= 6 && t.autoNums.length === 0) ? 'manual' : 'semi';
+        toSave.push({ idx: i, label: labels[i], numbers: all, type: saveType });
     });
 
     if (!toSave.length) { alert('저장할 완성된 게임이 없습니다.'); return; }
@@ -185,7 +192,7 @@ async function saveSemiTickets() {
         var item = toSave[i];
 
         var entry = saveForecastLocal({
-            type         : 'semi',
+            type         : item.type,
             round        : nextRound,
             numbers      : item.numbers,
             engineVersion: engineVer
@@ -198,7 +205,7 @@ async function saveSemiTickets() {
                 await window._lottoDB.collection('recommendations').add({
                     userId       : uid,
                     round        : entry.round,
-                    type         : 'semi',
+                    type         : item.type,
                     numbers      : entry.item,
                     cycle        : entry.cycle,
                     rank         : null,

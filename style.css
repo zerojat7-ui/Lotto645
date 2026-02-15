@@ -179,3 +179,18 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
 .grade-5 { background:#00C49F; color:white; }
 /* btn-go */
 .btn-go { background:linear-gradient(135deg,#667eea,#764ba2); color:white; font-size:16px; }
+
+/* 포인트 배지 */
+#pointBadge {
+    background: linear-gradient(135deg,#667eea,#764ba2);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(102,126,234,0.4);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.15s;
+}
+#pointBadge:active { transform: scale(0.95); }

@@ -12,7 +12,20 @@
 
   <!-- 헤더 -->
   <div class="header">
-    <h1 style="font-size:16px;margin:0;">🎰 로또의 모든것</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <h1 style="font-size:16px;margin:0;">🎰 로또의 모든것</h1>
+      <div id="pointBadge" style="
+        background:linear-gradient(135deg,#667eea,#764ba2);
+        color:white;
+        padding:4px 12px;
+        border-radius:20px;
+        font-size:13px;
+        font-weight:bold;
+        box-shadow:0 2px 8px rgba(102,126,234,0.4);
+        cursor:pointer;
+        white-space:nowrap;
+      " onclick="showPointInfo()" title="포인트 내역">💎 0p</div>
+    </div>
     <div id="latestDraw" style="margin-top:10px;padding:10px;background:#f8f9fa;border-radius:10px;">
       <div style="font-size:11px;color:#888;margin-bottom:6px;" id="latestRoundLabel">데이터 로딩 중...</div>
       <div id="latestBalls" style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;"></div>
@@ -208,6 +221,31 @@
 <script src="semiauto.js"></script>
 <script>window._FORCE_IS_MAIN = true;</script>
 <script src="app.js"></script>
+<script>
+// ── 포인트 정보 팝업 ──
+function showPointInfo() {
+    var bal = typeof getPointBalance === 'function' ? getPointBalance() : 0;
+    alert([
+        '💎 포인트 현황',
+        '잔여: ' + bal.toLocaleString() + 'p',
+        '',
+        '[적립]',
+        '첫 구동: 2,000p',
+        '매주 일요일: 1,000p',
+        '5등 당첨: 5,000p',
+        '4등 당첨: 10,000p',
+        '3등 당첨: 20,000p',
+        '2등 당첨: 100,000p',
+        '1등 당첨: 1,000,000p',
+        '',
+        '[사용]',
+        '기본추천 갱신 1회: 5p',
+        '고급추천 1회: 50p',
+        '반자동 번호 1개: 2p',
+        '기록 저장 1개: 1p'
+    ].join('\n'));
+}
+</script>
 
 </body>
 </html>

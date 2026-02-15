@@ -56,6 +56,10 @@ function saveForecastLocal(opts) {
     
     records.push(entry);
     saveForecastData(records);
+
+    // 기록 저장 1개당 1p 차감 (비동기, 실패해도 저장은 완료)
+    if (typeof usePoints === 'function') usePoints(1, '기록 저장');
+
     return entry;
 }
 
@@ -64,6 +68,267 @@ function normalizeType(type) {
     if (typeof type === 'string') return type;
     var map = { 0: 'basic', 1: 'engine', 2: 'semi', 3: 'neutral' };
     return map[type] || 'basic';
+}
+
+// ════════════════════════════════════════
+//  포인트 시스템 (Firebase 기반)
+//  Firestore: user_points/{uid}
+//  구조: {
+//    balance      : number,       // 잔여 포인트
+//    firstGranted : boolean,      // 첫 구동 2000p 지급 여부
+//    lastWeeklyAt : ISO string,   // 마지막 주간 보너스 지급 시각
+//    awardedUuids : string[],     // 당첨 포인트 지급된 uuid 목록
+//    updatedAt    : serverTimestamp
+//  }
+//  LocalStorage(PT_KEY): 오프라인 캐시 (읽기 전용 폴백)
+// ════════════════════════════════════════
+var PT_KEY        = 'lotto645_points';
+var PT_COLLECTION = 'user_points';
+var _ptCache      = null;   // 메모리 캐시 (동일 세션 중복 조회 방지)
+
+// ── Firestore DB 참조 ──
+function _ptDb() {
+    return window._lottoDB || null;
+}
+
+// ── LS 캐시 저장/읽기 ──
+function _ptSaveLS(obj) {
+    try { localStorage.setItem(PT_KEY, JSON.stringify(obj)); } catch(e) {}
+}
+function _ptLoadLS() {
+    try {
+        var raw = localStorage.getItem(PT_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch(e) { return null; }
+}
+
+// ── Firebase에서 포인트 문서 읽기 ──
+async function _ptLoadFB() {
+    var db = _ptDb();
+    if (!db) return null;
+    try {
+        var uid  = getUserId();
+        var snap = await db.collection(PT_COLLECTION).doc(uid).get();
+        return snap.exists ? snap.data() : null;
+    } catch(e) {
+        console.warn('[Point] FB 읽기 실패:', e.message);
+        return null;
+    }
+}
+
+// ── Firebase에 포인트 문서 저장 ──
+async function _ptSaveFB(obj) {
+    var db = _ptDb();
+    if (!db) return false;
+    try {
+        var uid = getUserId();
+        var data = Object.assign({}, obj, {
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await db.collection(PT_COLLECTION).doc(uid).set(data);
+        return true;
+    } catch(e) {
+        console.warn('[Point] FB 저장 실패:', e.message);
+        return false;
+    }
+}
+
+// ── Firebase 트랜잭션으로 포인트 변경 (동시접속 안전) ──
+async function _ptTransact(deltaFn) {
+    // deltaFn(obj) → 수정된 obj 반환, null 반환 시 취소
+    var db = _ptDb();
+    if (!db) {
+        // Firebase 없음: LS 캐시로만 처리
+        var obj = _ptCache || _ptLoadLS() || _defaultPtObj();
+        var next = deltaFn(obj);
+        if (!next) return null;
+        _ptCache = next;
+        _ptSaveLS(next);
+        return next;
+    }
+    try {
+        var uid = getUserId();
+        var ref = db.collection(PT_COLLECTION).doc(uid);
+        var result = null;
+        await db.runTransaction(async function(tx) {
+            var snap = await tx.get(ref);
+            var obj  = snap.exists ? snap.data() : _defaultPtObj();
+            var next = deltaFn(obj);
+            if (!next) { result = null; return; }
+            tx.set(ref, Object.assign({}, next, {
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }));
+            result = next;
+        });
+        if (result) {
+            _ptCache = result;
+            _ptSaveLS(result);
+        }
+        return result;
+    } catch(e) {
+        console.warn('[Point] 트랜잭션 실패:', e.message);
+        return null;
+    }
+}
+
+function _defaultPtObj() {
+    return {
+        balance     : 0,
+        firstGranted: false,
+        lastWeeklyAt: null,
+        awardedUuids: []
+    };
+}
+
+// ── 잔액 반환 (캐시 우선) ──
+function getPointBalance() {
+    var obj = _ptCache || _ptLoadLS();
+    return obj ? (obj.balance || 0) : 0;
+}
+
+// ── 포인트 초기화 (첫 구동 + 주간 보너스) ──
+async function initPointsIfNeeded() {
+    // 1) Firebase에서 현재 상태 로드
+    var fbObj = await _ptLoadFB();
+    var obj   = fbObj || _ptLoadLS() || null;
+
+    if (!obj) {
+        // 완전 신규: 2000p 지급
+        obj = _defaultPtObj();
+        obj.balance      = 2000;
+        obj.firstGranted = true;
+        obj.lastWeeklyAt = new Date().toISOString();
+        _ptCache = obj;
+        _ptSaveLS(obj);
+        await _ptSaveFB(obj);
+        showPointToast('+2000p 지급 (첫 구동 보너스)');
+    } else {
+        // 기존 유저: firstGranted 체크
+        if (!obj.firstGranted) {
+            await _ptTransact(function(o) {
+                if (o.firstGranted) return null; // 이미 지급됨
+                o.balance      = (o.balance || 0) + 2000;
+                o.firstGranted = true;
+                return o;
+            });
+            showPointToast('+2000p 지급 (첫 구동 보너스)');
+        }
+        // 주간 보너스 체크
+        await _checkWeeklyBonus(obj);
+    }
+
+    _ptCache = fbObj || obj;
+    _ptSaveLS(_ptCache);
+    updatePointBadge();
+}
+
+// ── 주간 보너스 (일요일, 중복 방지) ──
+async function _checkWeeklyBonus(obj) {
+    var now = new Date();
+    if (now.getDay() !== 0) return; // 일요일만
+
+    var lastSunday = obj.lastWeeklyAt ? _getSundayTs(new Date(obj.lastWeeklyAt)) : 0;
+    var thisSunday = _getSundayTs(now);
+    if (thisSunday <= lastSunday) return; // 이번 주 이미 지급
+
+    var granted = await _ptTransact(function(o) {
+        // 트랜잭션 내에서도 이중 체크
+        var ls = o.lastWeeklyAt ? _getSundayTs(new Date(o.lastWeeklyAt)) : 0;
+        if (_getSundayTs(new Date()) <= ls) return null;
+        o.balance      = (o.balance || 0) + 1000;
+        o.lastWeeklyAt = new Date().toISOString();
+        return o;
+    });
+    if (granted) showPointToast('+1000p 지급 (주간 보너스)');
+}
+
+function _getSundayTs(d) {
+    var dt = new Date(d);
+    dt.setDate(dt.getDate() - dt.getDay());
+    dt.setHours(0, 0, 0, 0);
+    return dt.getTime();
+}
+
+// ── 포인트 소비 (부족 시 false 반환, async) ──
+async function usePoints(amount, reason) {
+    // 빠른 잔액 선체크 (UX용)
+    var cur = getPointBalance();
+    if (cur < amount) {
+        alert('포인트가 부족합니다.\n현재: ' + cur.toLocaleString() + 'p / 필요: ' + amount + 'p');
+        return false;
+    }
+    var result = await _ptTransact(function(obj) {
+        if ((obj.balance || 0) < amount) return null; // 트랜잭션 내 재확인
+        obj.balance -= amount;
+        return obj;
+    });
+    if (!result) {
+        alert('포인트가 부족합니다.');
+        return false;
+    }
+    updatePointBadge();
+    showPointToast('-' + amount + 'p (' + reason + ')');
+    return true;
+}
+
+// ── 포인트 적립 (async) ──
+async function addPoints(amount, reason) {
+    await _ptTransact(function(obj) {
+        obj.balance = (obj.balance || 0) + amount;
+        return obj;
+    });
+    updatePointBadge();
+    if (reason) showPointToast('+' + amount + 'p (' + reason + ')');
+}
+
+// ── 헤더 배지 업데이트 ──
+function updatePointBadge() {
+    var el = document.getElementById('pointBadge');
+    if (!el) return;
+    el.textContent = '💎 ' + getPointBalance().toLocaleString() + 'p';
+}
+
+// ── 토스트 알림 ──
+function showPointToast(msg) {
+    var toast = document.createElement('div');
+    toast.textContent = '💎 ' + msg;
+    toast.style.cssText = [
+        'position:fixed', 'top:60px', 'right:14px', 'z-index:9999',
+        'background:linear-gradient(135deg,#667eea,#764ba2)',
+        'color:white', 'padding:8px 16px', 'border-radius:20px',
+        'font-size:13px', 'font-weight:bold',
+        'box-shadow:0 4px 15px rgba(102,126,234,0.5)',
+        'transition:opacity 0.4s', 'opacity:1'
+    ].join(';');
+    document.body.appendChild(toast);
+    setTimeout(function() {
+        toast.style.opacity = '0';
+        setTimeout(function() { toast.parentNode && toast.parentNode.removeChild(toast); }, 400);
+    }, 2500);
+}
+
+// ── 당첨 등수별 포인트 테이블 ──
+var GRADE_POINTS = { 1: 1000000, 2: 100000, 3: 20000, 4: 10000, 5: 5000 };
+
+// ── 당첨 포인트 지급 (Firebase awardedUuids로 중복 방지) ──
+async function checkAndAwardWinPoints(record, rank) {
+    if (!rank || !GRADE_POINTS[rank]) return;
+    var uuid = record.uuid;
+    if (!uuid) return;
+
+    // 캐시에서 빠른 중복 체크
+    var cached = _ptCache || _ptLoadLS();
+    if (cached && cached.awardedUuids && cached.awardedUuids.indexOf(uuid) >= 0) return;
+
+    var granted = await _ptTransact(function(obj) {
+        var awarded = obj.awardedUuids || [];
+        if (awarded.indexOf(uuid) >= 0) return null; // 이미 지급됨
+        awarded.push(uuid);
+        obj.awardedUuids = awarded;
+        obj.balance = (obj.balance || 0) + GRADE_POINTS[rank];
+        return obj;
+    });
+    if (granted) showPointToast('+' + GRADE_POINTS[rank].toLocaleString() + 'p (' + rank + '등 당첨)');
 }
 
 // ── 예측 저장 (LocalStorage + Firebase) ──
@@ -242,13 +507,15 @@ function _renderRecordsList(container, all) {
         basic  : '🎯 기본추천',
         engine : '🧠 고급추천',
         semi   : '✏️ 반자동',
-        neutral: '👆 수동'
+        neutral: '👆 수동',
+        manual : '👆 수동'
     };
     var typeClasses = {
         basic  : 'type-basic',
         engine : 'type-advanced',
         semi   : 'type-semi',
-        neutral: 'type-manual'
+        neutral: 'type-manual',
+        manual : 'type-manual'
     };
 
     // ── 컨트롤 패널 (상단 버튼) ──
@@ -312,6 +579,8 @@ function _renderRecordsList(container, all) {
             var gLabel = ['', '🏆 1등', '🥈 2등', '🥉 3등', '4등', '5등'][rank] || rank + '등';
             var gClass = ['', 'grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5'][rank] || '';
             gradeHtml = '<span class="grade-badge ' + gClass + '">' + gLabel + '</span>';
+            // 당첨 포인트 지급 (중복 방지)
+            checkAndAwardWinPoints(r, rank);
         } else if (actual) {
             gradeHtml = '<span style="font-size:11px;color:#bbb;">' + matchedCount + '개 일치</span>';
         } else {
