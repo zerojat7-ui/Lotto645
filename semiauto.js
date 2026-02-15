@@ -30,7 +30,69 @@ function toggleSemiNum(idx, num) {
     updateSemiSaveBtn();
 }
 
-// ── CubeEngine으로 자동 완성 ──
+// ── 반자동 엔진 상태 Firebase 로드 ──
+async function loadSemiEngineState() {
+    try {
+        var db = typeof firebase !== 'undefined' && firebase.apps.length > 0
+                 ? firebase.firestore() : null;
+        if (!db) return null;
+        var snap = await db.collection('lotto_history').doc('semi_engine_state').get();
+        if (snap.exists) {
+            var data = snap.data();
+            console.log('[SemiEngine] Firebase 학습 로드 완료 iteration:', data.iteration || 0);
+            return data;
+        }
+        return null;
+    } catch(e) {
+        console.warn('[SemiEngine] Firebase 로드 실패:', e.message);
+        return null;
+    }
+}
+
+// ── 반자동 엔진 상태 Firebase 저장 ──
+async function saveSemiEngineState(result, iteration) {
+    try {
+        var db = typeof firebase !== 'undefined' && firebase.apps.length > 0
+                 ? firebase.firestore() : null;
+        if (!db) return false;
+        // probMap 키를 문자열로 변환 (Firestore 요구)
+        var probMapStr = {};
+        Object.keys(result.probMap).forEach(function(k) {
+            probMapStr['n' + k] = result.probMap[k];
+        });
+        // fullPool 상위 50개만 저장 (반자동은 가볍게)
+        var poolToSave = result.fullPool.slice(0, 50).map(function(combo) {
+            return { items: combo };
+        });
+        await db.collection('lotto_history').doc('semi_engine_state').set({
+            probMap  : probMapStr,
+            pool     : poolToSave,
+            iteration: iteration,
+            savedAt  : firebase.firestore.FieldValue.serverTimestamp(),
+            bestScore: result.scores[0] || 0
+        });
+        console.log('[SemiEngine] Firebase 학습 저장 완료 iteration:', iteration);
+        return true;
+    } catch(e) {
+        console.warn('[SemiEngine] Firebase 저장 실패:', e.message);
+        return false;
+    }
+}
+
+// ── probMap 키 복원 (n1 → 숫자 1) ──
+function restoreSemiProbMap(probMapStr) {
+    if (!probMapStr) return null;
+    var probMap = {};
+    Object.keys(probMapStr).forEach(function(k) {
+        var num = parseInt(k.replace('n', ''));
+        if (!isNaN(num) && num >= 1 && num <= 45) {
+            probMap[num] = parseFloat(probMapStr[k]);
+        }
+    });
+    return Object.keys(probMap).length > 0 ? probMap : null;
+}
+
+// ── CubeEngine으로 자동 완성 (터보+excludeNumbers+Firebase 학습) ──
 async function autoFillTicket(idx) {
     var t = semiTickets[idx];
     var needed = 6 - t.manualNums.length;
@@ -46,33 +108,55 @@ async function autoFillTicket(idx) {
         return;
     }
 
-    // CubeEngine 사용 가능 여부 확인
-    if (typeof CubeEngine !== 'undefined' && lottoData && lottoData.length > 0) {
-        var btn = document.querySelector('[data-autobtn="'+idx+'"]');
-        if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+    var btn = document.querySelector('[data-autobtn="'+idx+'"]');
+    if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
 
+    if (typeof CubeEngine !== 'undefined' && lottoData && lottoData.length > 0) {
         try {
+            // ① Firebase에서 이전 학습 상태 로드
+            var engineState = await loadSemiEngineState();
+            var prevProbMap = engineState ? restoreSemiProbMap(engineState.probMap) : null;
+            var prevPool    = engineState ? (engineState.pool || []).map(function(p){ return p.items; }) : null;
+            var prevIter    = engineState ? (engineState.iteration || 0) : 0;
+
             var historyNums = lottoData.map(function(d){ return d.numbers; });
+
+            // ② 터보 프리셋 + excludeNumbers(수동선택번호 제외) + Firebase 학습 반영
             var result = await CubeEngine.generate(
-                CubeEngine.withPreset('fast', {
-                    items  : 45,
-                    pick   : needed,
-                    history: historyNums,
-                    topN   : 1
+                CubeEngine.withPreset('turbo', {
+                    items          : 45,
+                    pick           : needed,
+                    history        : historyNums,
+                    excludeNumbers : t.manualNums.slice(),   // 수동 선택 번호 제외
+                    externalProbMap: prevProbMap,            // 이전 학습 확률맵
+                    initialPool    : prevPool,               // 이전 세대 풀
+                    topN           : 3
                 })
             );
-            // 수동번호와 겹치지 않는 번호만 선택
+
+            // ③ 결과에서 겹치지 않는 번호 선택 (excludeNumbers 이미 적용되었지만 이중 체크)
             var candidates = result.results[0] || [];
             var picked = [];
             candidates.forEach(function(n){
                 if (t.manualNums.indexOf(n) < 0 && picked.length < needed) picked.push(n);
             });
-            // 부족하면 보충
+            // 부족하면 result 나머지 조합에서 보충
+            for (var ri = 1; ri < result.results.length && picked.length < needed; ri++) {
+                result.results[ri].forEach(function(n){
+                    if (t.manualNums.indexOf(n) < 0 && picked.indexOf(n) < 0 && picked.length < needed) picked.push(n);
+                });
+            }
+            // 그래도 부족하면 숫자 순으로 보충
             for (var n=1; n<=45 && picked.length < needed; n++) {
                 if (t.manualNums.indexOf(n) < 0 && picked.indexOf(n) < 0) picked.push(n);
             }
             t.autoNums = picked.slice(0, needed);
+
+            // ④ Firebase에 학습 결과 저장 (비동기 - 완료 대기 안 함)
+            saveSemiEngineState(result, prevIter + 1);
+
         } catch(e) {
+            console.warn('[SemiEngine] CubeEngine 오류:', e.message);
             t.autoNums = fallbackAuto(t.manualNums, needed);
         }
     } else {
@@ -272,24 +356,22 @@ function checkWinHistory(numbers) {
     for (var i=0; i<lottoData.length; i++) {
         var draw = lottoData[i];
         var matched = numbers.filter(function(n){ return draw.numbers.indexOf(n)>=0; }).length;
-        var hasBonus = draw.bonus && numbers.indexOf(draw.bonus)>=0;
         var grade = 0;
-        if (matched===6) grade=1;
-        else if (matched===5&&hasBonus) grade=2;
-        else if (matched===5) grade=3;
+        // 2등(보너스) 제외 - 보너스 번호를 당첨 기준에 포함하지 않음
+        if      (matched===6) grade=1;
+        else if (matched===5) grade=3;   // 2등 없음, 바로 3등
         else if (matched===4) grade=4;
         else if (matched===3) grade=5;
-        if (grade>0) results.push({ round:draw.round, grade:grade, matched:matched, hasBonus:hasBonus, drawNums:draw.numbers, bonus:draw.bonus });
+        if (grade>0) results.push({ round:draw.round, grade:grade, matched:matched, drawNums:draw.numbers });
     }
     return results;
 }
 function renderWinBadge(result) {
-    var gradeColor = result.grade===1?'#FFD700':result.grade===2?'#C0C0C0':result.grade===3?'#CD7F32':result.grade===4?'#667eea':'#00C49F';
-    var gradeLabel = result.grade===1?'🏆 1등':result.grade===2?'🥈 2등':result.grade===3?'🥉 3등':result.grade===4?'4등':'5등';
-    var bonusStr = result.hasBonus?' +보너스('+result.bonus+')':'';
+    var gradeColor = result.grade===1?'#FFD700':result.grade===3?'#CD7F32':result.grade===4?'#667eea':'#00C49F';
+    var gradeLabel = result.grade===1?'🏆 1등':result.grade===3?'🥉 3등':result.grade===4?'4등':'5등';
     return '<div style="display:flex;align-items:center;gap:8px;background:'+gradeColor+'18;border:1.5px solid '+gradeColor+';border-radius:8px;padding:7px 10px;margin-top:5px;">'+
         '<div style="font-size:13px;font-weight:bold;color:'+gradeColor+';min-width:48px;">'+gradeLabel+'</div>'+
-        '<div style="font-size:12px;color:#555;">'+result.round+'회차'+bonusStr+' ('+result.matched+'개 일치)</div></div>';
+        '<div style="font-size:12px;color:#555;">'+result.round+'회차 ('+result.matched+'개 일치)</div></div>';
 }
 function updateSemiResult() {
     var list = document.getElementById('semiResultList');
