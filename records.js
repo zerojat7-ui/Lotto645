@@ -44,13 +44,14 @@ function saveForecastLocal(opts) {
     }).length + 1;
 
     var entry = {
-        uuid : generateUUID(),
-        round: opts.round,
-        type : sameType,
-        item : opts.numbers || opts.item || [],
-        rank : opts.rank || null,
-        time : new Date().toISOString(),
-        cycle: cycle
+        uuid         : generateUUID(),
+        round        : opts.round,
+        type         : sameType,
+        item         : opts.numbers || opts.item || [],
+        rank         : opts.rank || null,
+        time         : new Date().toISOString(),
+        cycle        : cycle,
+        engineVersion: opts.engineVersion || null
     };
     
     records.push(entry);
@@ -351,6 +352,7 @@ function _renderRecordsList(container, all) {
                     '<span style="font-size:11px;color:#999;">' +
                       r.round + '회차' +
                       (r.cycle > 1 ? ' | 🔄' + r.cycle + '번째' : '') +
+                      (r.engineVersion ? ' | v' + r.engineVersion : '') +
                       ' | ' + timeStr +
                     '</span>' +
                   '</div>' +

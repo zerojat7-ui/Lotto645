@@ -6,7 +6,7 @@
 var lottoData = [];
 var analysis  = null;
 var LS_KEY    = 'lotto645_v2';
-var IS_MAIN   = (location.pathname.indexOf('main.html') >= 0);
+var IS_MAIN   = (window._FORCE_IS_MAIN === true || location.pathname.indexOf('main.html') >= 0);
 
 // ══════════════════════════════
 //  Firebase 헬퍼
@@ -84,13 +84,14 @@ function goMain() {
 function switchTab(tab, btn) {
     document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
     btn.classList.add('active');
-    ['analysis','recommend','semiauto','records'].forEach(function(id){
+    ['winning','analysis','recommend','semiauto','records'].forEach(function(id){
         var el = document.getElementById('content-'+id);
         if (el) el.classList.add('hidden');
     });
     var target = document.getElementById('content-'+tab);
     if (target) target.classList.remove('hidden');
     if (tab === 'records') renderRecords();
+    if (tab === 'winning') renderWinningTab();
 }
 
 // ══════════════════════════════
@@ -164,6 +165,7 @@ function onDataLoaded() {
     if (IS_MAIN) {
         analyzeData();
         updateMainHeader();
+        renderWinningTab();
     }
 }
 
@@ -325,7 +327,7 @@ function addNewDraw() {
     inputNums=[null,null,null,null,null,null];
     refreshNumBtns();
     updateNextRoundDisplay();
-    if (IS_MAIN) { analyzeData(); updateMainHeader(); }
+    if (IS_MAIN) { analyzeData(); updateMainHeader(); renderWinningTab(); }
 }
 
 // ══════════════════════════════
@@ -381,8 +383,64 @@ window.addEventListener('load', function() {
 });
 
 // ══════════════════════════════
-//  history.json 폴백 로드
+//  당첨 탭 렌더링 (내림차순)
 // ══════════════════════════════
+function renderWinningTab() {
+    var container = document.getElementById('winningList');
+    if (!container) return;
+    if (!lottoData || !lottoData.length) {
+        container.innerHTML = '<div style="text-align:center;color:#aaa;padding:30px;">데이터 없음</div>';
+        return;
+    }
+
+    // 내림차순 복사
+    var sorted = lottoData.slice().sort(function(a, b){ return b.round - a.round; });
+
+    var html = '';
+    sorted.forEach(function(draw) {
+        var nums = draw.numbers || [];
+        var bonus = draw.bonus || null;
+
+        // 통계 계산
+        var sorted6 = nums.slice().sort(function(a,b){return a-b;});
+        var sum = sorted6.reduce(function(a,b){return a+b;}, 0);
+        var odd = sorted6.filter(function(n){return n%2===1;}).length;
+        var even = 6 - odd;
+        var low  = sorted6.filter(function(n){return n<=22;}).length;
+        var high = 6 - low;
+        var tailSum = sorted6.reduce(function(a,b){return a+(b%10);}, 0);
+        var ac = typeof calculateAC === 'function' ? calculateAC(sorted6) : '-';
+
+        // 번호 볼
+        var ballsHtml = sorted6.map(function(n){
+            return '<div class="lotto-ball '+ballClass(n)+'" style="width:42px;height:42px;font-size:16px;">'+n+'</div>';
+        }).join('');
+        if (bonus) {
+            ballsHtml += '<span style="color:#999;font-size:18px;line-height:42px;margin:0 4px;">+</span>';
+            ballsHtml += '<div class="lotto-ball '+ballClass(bonus)+'" style="width:42px;height:42px;font-size:16px;box-shadow:0 0 0 3px #333,0 3px 8px rgba(0,0,0,0.28);">'+bonus+'</div>';
+        }
+
+        html +=
+            '<div style="background:white;border:1px solid #e8e8e8;border-radius:14px;padding:16px 14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">' +
+                '<div style="font-size:14px;font-weight:700;color:#333;margin-bottom:12px;">' +
+                    draw.round + '회차' +
+                '</div>' +
+                '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;">' +
+                    ballsHtml +
+                '</div>' +
+                '<div style="display:flex;justify-content:space-around;font-size:12px;color:#666;border-top:1px solid #f0f0f0;padding-top:10px;flex-wrap:wrap;gap:4px;">' +
+                    '<span>홀짝 <strong style="color:#333;">'+odd+':'+even+'</strong></span>' +
+                    '<span>고저 <strong style="color:#333;">'+high+':'+low+'</strong></span>' +
+                    '<span>끝수합 <strong style="color:#333;">'+tailSum+'</strong></span>' +
+                    '<span>번호합 <strong style="color:#333;">'+sum+'</strong></span>' +
+                    '<span>AC값 <strong style="color:#333;">'+ac+'</strong></span>' +
+                '</div>' +
+            '</div>';
+    });
+
+    container.innerHTML = html;
+}
+
 function loadHistoryJSON() {
     showLSStatus('📡 history.json 로딩 중…', '#667eea');
     fetch('history.json')
