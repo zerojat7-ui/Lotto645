@@ -12,6 +12,7 @@
 // ══════════════════════════════════════════
 
 var FC_KEY = 'lotto645_forecast';
+var selectedRecords = new Set(); // 선택된 기록의 UUID 추적
 
 // ── UUID 생성 ──
 function generateUUID() {
@@ -249,16 +250,28 @@ function _renderRecordsList(container, all) {
         neutral: 'type-manual'
     };
 
+    // ── 컨트롤 패널 (상단 버튼) ──
     var html =
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
-        '<div style="font-size:13px;color:#666;">총 <strong>' + all.length + '</strong>개 기록</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">' +
+        '<div style="font-size:13px;color:#666;">총 <strong>' + all.length + '</strong>개 ' +
+        '<span id="selectedCount" style="color:#667eea;font-weight:bold;">(선택: 0)</span></div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+        '<button onclick="toggleAllRecords()" ' +
+        'style="background:#667eea;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:bold;cursor:pointer;">' +
+        '☑️ 모두선택</button>' +
         '<button onclick="downloadForecastJSON()" ' +
         'style="background:#667eea;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:bold;cursor:pointer;">' +
-        '📥 JSON</button></div>';
+        '📥 JSON</button>' +
+        '<button id="deleteSelectedBtn" onclick="deleteSelectedRecords()" disabled ' +
+        'style="background:#ff6b6b;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:bold;cursor:pointer;opacity:0.5;">' +
+        '🗑️ 삭제</button>' +
+        '</div></div>';
 
-    all.forEach(function(r) {
+    all.forEach(function(r, idx) {
         var typeKey = normalizeType(r.type);
         var numbers = r.item || r.numbers || [];
+        var uuid = r.uuid || 'record_' + idx;
+        var isSelected = selectedRecords.has(uuid);
 
         // 당첨번호 비교 (rank 없으면 자동 계산)
         var rank = r.rank;
@@ -306,22 +319,132 @@ function _renderRecordsList(container, all) {
             timeStr = r.date;
         }
 
+        // 카드 HTML (체크박스 포함)
         html +=
-            '<div class="record-card">' +
-              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
-                '<span class="record-type-badge ' + (typeClasses[typeKey] || 'type-basic') + '">' +
-                  (typeLabels[typeKey] || typeKey) +
-                '</span>' +
-                '<span style="font-size:11px;color:#999;">' +
-                  r.round + '회차' +
-                  (r.cycle > 1 ? ' | 🔄' + r.cycle + '번째' : '') +
-                  ' | ' + timeStr +
-                '</span>' +
+            '<div class="record-card' + (isSelected ? ' record-selected' : '') + '" data-uuid="' + uuid + '">' +
+              '<div style="display:flex;align-items:flex-start;gap:10px;">' +
+                '<input type="checkbox" class="record-checkbox" data-uuid="' + uuid + '" ' +
+                (isSelected ? 'checked' : '') + ' ' +
+                'onchange="toggleRecordSelect(\'' + uuid + '\')" ' +
+                'style="margin-top:2px;cursor:pointer;width:18px;height:18px;">' +
+                '<div style="flex:1;">' +
+                  '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+                    '<span class="record-type-badge ' + (typeClasses[typeKey] || 'type-basic') + '">' +
+                      (typeLabels[typeKey] || typeKey) +
+                    '</span>' +
+                    '<span style="font-size:11px;color:#999;">' +
+                      r.round + '회차' +
+                      (r.cycle > 1 ? ' | 🔄' + r.cycle + '번째' : '') +
+                      ' | ' + timeStr +
+                    '</span>' +
+                  '</div>' +
+                  '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">' + balls + '</div>' +
+                  '<div style="display:flex;align-items:center;gap:8px;">' + gradeHtml + '</div>' +
+                '</div>' +
               '</div>' +
-              '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">' + balls + '</div>' +
-              '<div style="display:flex;align-items:center;gap:8px;">' + gradeHtml + '</div>' +
             '</div>';
     });
 
     container.innerHTML = html;
+    updateRecordSelection();
+}
+
+// ── 개별 기록 선택/해제 토글 ──
+function toggleRecordSelect(uuid) {
+    if (selectedRecords.has(uuid)) {
+        selectedRecords.delete(uuid);
+    } else {
+        selectedRecords.add(uuid);
+    }
+    updateRecordSelection();
+}
+
+// ── 모두 선택/해제 토글 ──
+function toggleAllRecords() {
+    var allCheckboxes = document.querySelectorAll('.record-checkbox');
+    var allSelected = selectedRecords.size === allCheckboxes.length && allCheckboxes.length > 0;
+    
+    selectedRecords.clear();
+    if (!allSelected) {
+        allCheckboxes.forEach(function(cb) {
+            var uuid = cb.getAttribute('data-uuid');
+            selectedRecords.add(uuid);
+        });
+    }
+    updateRecordSelection();
+}
+
+// ── 선택 상태 UI 업데이트 ──
+function updateRecordSelection() {
+    // 체크박스 상태 업데이트
+    document.querySelectorAll('.record-checkbox').forEach(function(cb) {
+        var uuid = cb.getAttribute('data-uuid');
+        cb.checked = selectedRecords.has(uuid);
+    });
+    
+    // 카드 선택 스타일 적용
+    document.querySelectorAll('.record-card').forEach(function(card) {
+        var uuid = card.getAttribute('data-uuid');
+        if (selectedRecords.has(uuid)) {
+            card.classList.add('record-selected');
+        } else {
+            card.classList.remove('record-selected');
+        }
+    });
+    
+    // "선택: N" 텍스트 업데이트
+    var countEl = document.getElementById('selectedCount');
+    if (countEl) {
+        countEl.textContent = '(선택: ' + selectedRecords.size + ')';
+    }
+    
+    // 삭제 버튼 활성화/비활성화
+    var deleteBtn = document.getElementById('deleteSelectedBtn');
+    if (deleteBtn) {
+        if (selectedRecords.size > 0) {
+            deleteBtn.disabled = false;
+            deleteBtn.style.opacity = '1';
+            deleteBtn.style.cursor = 'pointer';
+        } else {
+            deleteBtn.disabled = true;
+            deleteBtn.style.opacity = '0.5';
+            deleteBtn.style.cursor = 'not-allowed';
+        }
+    }
+}
+
+// ── 선택된 기록 삭제 ──
+function deleteSelectedRecords() {
+    if (selectedRecords.size === 0) {
+        alert('삭제할 기록을 선택해주세요.');
+        return;
+    }
+    
+    var count = selectedRecords.size;
+    if (!confirm(count + '개의 기록을 삭제하시겠습니까?\n삭제 후 되돌릴 수 없습니다.')) {
+        return;
+    }
+    
+    // LocalStorage에서 삭제
+    var records = loadForecastData() || [];
+    records = records.filter(function(r) {
+        return !selectedRecords.has(r.uuid);
+    });
+    saveForecastData(records);
+    
+    // Firebase에서도 삭제 (선택사항)
+    if (typeof window._lottoDB !== 'undefined' && window._lottoDB) {
+        var uid = getUserId();
+        Array.from(selectedRecords).forEach(function(uuid) {
+            window._lottoDB.collection('recommendations').doc(uuid).delete().catch(function(e) {
+                console.warn('Firebase 삭제 실패 (' + uuid + '):', e.message);
+            });
+        });
+    }
+    
+    // UI 초기화
+    selectedRecords.clear();
+    
+    // 기록 탭 새로고침
+    renderRecords();
 }
