@@ -7,17 +7,22 @@
 body {
     font-family: Arial, sans-serif;
     padding: 40px;
-    background: #f7f7f7;
+    background: #f5f5f5;
 }
-h2 { margin-bottom: 20px; }
+h2 { margin-bottom: 15px; }
 button {
-    padding: 10px 18px;
-    font-size: 16px;
+    padding: 10px 16px;
+    font-size: 15px;
+    margin-right: 10px;
     cursor: pointer;
+}
+#status {
+    margin-top: 10px;
+    color: #555;
 }
 table {
     border-collapse: collapse;
-    margin-top: 25px;
+    margin-top: 20px;
     background: white;
 }
 th, td {
@@ -25,18 +30,17 @@ th, td {
     padding: 10px 14px;
     text-align: center;
 }
-#error {
-    color: red;
-    margin-top: 15px;
-}
 </style>
 </head>
 
 <body>
 
 <h2>로또 1211회 결과</h2>
+
 <button onclick="loadLotto()">결과 가져오기</button>
-<div id="error"></div>
+<button onclick="saveCSV()">CSV 저장</button>
+
+<div id="status">대기 중...</div>
 
 <table id="resultTable" style="display:none;">
 <thead>
@@ -58,8 +62,10 @@ th, td {
 </table>
 
 <script>
+let lottoData = null;
+
 async function loadLotto() {
-    document.getElementById("error").textContent = "";
+    document.getElementById("status").textContent = "불러오는 중...";
 
     try {
         const target =
@@ -75,37 +81,61 @@ async function loadLotto() {
             throw new Error("데이터 없음");
         }
 
-        const data = [
-            d.drwNo,
-            d.drwNoDate,
-            d.drwtNo1,
-            d.drwtNo2,
-            d.drwtNo3,
-            d.drwtNo4,
-            d.drwtNo5,
-            d.drwtNo6,
-            d.bnusNo,
-            d.firstPrzwnerCo,
-            d.firstWinamnt.toLocaleString()
-        ];
+        lottoData = {
+            회차: d.drwNo,
+            추첨일: d.drwNoDate,
+            번호1: d.drwtNo1,
+            번호2: d.drwtNo2,
+            번호3: d.drwtNo3,
+            번호4: d.drwtNo4,
+            번호5: d.drwtNo5,
+            번호6: d.drwtNo6,
+            보너스: d.bnusNo,
+            당첨자수: d.firstPrzwnerCo,
+            당첨금: d.firstWinamnt
+        };
 
-        const tbody = document.querySelector("#resultTable tbody");
-        tbody.innerHTML = "";
-        const tr = document.createElement("tr");
-
-        data.forEach(v => {
-            const td = document.createElement("td");
-            td.textContent = v;
-            tr.appendChild(td);
-        });
-
-        tbody.appendChild(tr);
-        document.getElementById("resultTable").style.display = "table";
+        showTable(lottoData);
+        document.getElementById("status").textContent = "불러오기 완료";
 
     } catch (e) {
-        document.getElementById("error").textContent =
+        document.getElementById("status").textContent =
         "데이터를 불러오지 못했습니다.";
     }
+}
+
+function showTable(data) {
+    const tbody = document.querySelector("#resultTable tbody");
+    tbody.innerHTML = "";
+
+    const tr = document.createElement("tr");
+    Object.values(data).forEach(v => {
+        const td = document.createElement("td");
+        td.textContent = typeof v === "number"
+            ? v.toLocaleString()
+            : v;
+        tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+    document.getElementById("resultTable").style.display = "table";
+}
+
+function saveCSV() {
+    if (!lottoData) {
+        alert("먼저 결과를 가져오세요.");
+        return;
+    }
+
+    const headers = Object.keys(lottoData).join(",");
+    const values = Object.values(lottoData).join(",");
+    const csv = headers + "\n" + values;
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "lotto_1211.csv";
+    a.click();
 }
 </script>
 
