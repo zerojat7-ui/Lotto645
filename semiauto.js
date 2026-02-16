@@ -79,6 +79,8 @@ async function autoFillTicket(idx) {
             }
 
             var historyNums = lottoData.map(function(d){ return d.numbers; });
+            // v2.2.0: 보너스 번호 배열 추출
+            var bonusNums = lottoData.map(function(d){ return d.bonus; }).filter(function(b){ return b && b >= 1 && b <= 45; });
 
             // 진행률 콜백으로 AI 메시지 업데이트
             var progressCb = function(stats) {
@@ -91,6 +93,8 @@ async function autoFillTicket(idx) {
                     items          : 45,
                     pick           : needed,
                     history        : historyNums,
+                    bonusHistory   : bonusNums.length > 0 ? bonusNums : null,  // v2.2.0 보너스 학습
+                    colorZoneWeight: 0.20,                                      // v2.2.0 색상구역 균형
                     excludeNumbers : t.manualNums.slice(),
                     externalProbMap: prevProbMap,
                     initialPool    : prevPool,
