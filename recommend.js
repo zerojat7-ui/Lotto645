@@ -518,13 +518,11 @@ async function runAdvancedEngine() {
                         document.getElementById('monitorETA').textContent = '완료 ✅';
                     }
                 },
-                onRound: function(roundNum, bestScore, bestCombo) {
+                onRound: function(roundNum, bestScore, scoreHistory) {
+                    // v2.2.2+: 3번째 인자는 scoreHistory (점수 배열)
                     if (roundNum % 5 === 0)
                         mLog('✅ ' + roundNum + '/' + totalRounds + ' | 최고점: ' + bestScore.toFixed(1));
-                    // 매 라운드마다 현재 최고 조합 표시
-                    if (bestCombo && bestCombo.length) {
-                        mShowCombo(bestCombo);
-                    }
+                    // 조합 표시는 onProgress에서 처리 (scoreHistory는 점수 배열이므로 표시 안 함)
                 }
             })
         );
