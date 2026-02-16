@@ -81,6 +81,16 @@ async function autoFillTicket(idx) {
             var historyNums = lottoData.map(function(d){ return d.numbers; });
             // v2.2.0: 보너스 번호 배열 추출
             var bonusNums = lottoData.map(function(d){ return d.bonus; }).filter(function(b){ return b && b >= 1 && b <= 45; });
+            // v9.4.0: 기록 탭 저장 번호 → 중복 제거 후 학습 데이터에 통합
+            var recordHistory = typeof getRecordHistoryForEngine === 'function' ? getRecordHistoryForEngine() : [];
+            if (recordHistory.length > 0) {
+                var histSet = new Set(historyNums.map(function(a){ return a.slice().sort(function(x,y){return x-y;}).join(','); }));
+                var uniqueRecHist = recordHistory.filter(function(r){ return !histSet.has(r.join(',')); });
+                if (uniqueRecHist.length > 0) {
+                    historyNums = historyNums.concat(uniqueRecHist);
+                    console.log('[SemiEngine] 기록 학습 데이터', uniqueRecHist.length, '개 추가 (총:', historyNums.length, '회차)');
+                }
+            }
 
             // 진행률 콜백으로 AI 메시지 업데이트
             var progressCb = function(stats) {
@@ -224,6 +234,49 @@ async function saveSemiTickets() {
         return;
     }
 
+    // ── 중복 체크: 동일 회차 동일 번호 제외 + 포인트 반환 ──
+    var existRecords = typeof loadForecastData === 'function' ? loadForecastData() : [];
+    var existKeys = typeof _getExistingKeys === 'function'
+        ? _getExistingKeys(existRecords, nextRound)
+        : new Set();
+    var dupItems = [];
+    var uniqueToSave = toSave.filter(function(item) {
+        var key = typeof _comboKey === 'function'
+            ? _comboKey(item.numbers)
+            : item.numbers.slice().sort(function(a,b){return a-b;}).join(',');
+        if (existKeys.has(key)) { dupItems.push(item); return false; }
+        return true;
+    });
+
+    if (dupItems.length > 0) {
+        var dupCount = dupItems.length;
+        var refundPt = dupCount; // 1개당 1p
+        var msg = dupCount + '개 조합이 이미 저장된 번호와 중복되어 제외되었습니다.';
+        if (typeof addPoints === 'function') {
+            await addPoints(refundPt, '중복 조합 ' + dupCount + '개 포인트 반환');
+            msg += '\n(포인트 ' + refundPt + 'p 반환)';
+        }
+        // 중복 티켓 배지 표시
+        var ticketEls = document.querySelectorAll('.lotto-ticket');
+        dupItems.forEach(function(item) {
+            if (ticketEls[item.idx]) {
+                var header = ticketEls[item.idx].querySelector('.ticket-header');
+                if (header) {
+                    var badge = document.createElement('span');
+                    badge.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:8px;font-weight:bold;background:#ff6b6b;color:white;margin-left:4px;';
+                    badge.textContent = '⚠️ 중복 제외';
+                    header.appendChild(badge);
+                }
+            }
+        });
+        if (uniqueToSave.length === 0) {
+            alert(msg + '\n저장할 새 조합이 없습니다.');
+            return;
+        }
+        alert(msg);
+    }
+    toSave = uniqueToSave;
+
     // 기록 저장 1개당 1p × toSave.length 선차감 (포인트 부족 시 차단)
     if (typeof usePoints === 'function') {
         var ptNeeded = toSave.length;
@@ -237,12 +290,14 @@ async function saveSemiTickets() {
     for (var i = 0; i < toSave.length; i++) {
         var item = toSave[i];
 
-        var entry = saveForecastLocal({
+        var saveResult = saveForecastLocal({
             type         : item.type,
             round        : nextRound,
             numbers      : item.numbers,
             engineVersion: engineVer
         });
+        var entry = saveResult.entry;
+        if (!entry) continue; // 혹시 저장 중 중복 발생 시 스킵
 
         // 저장 완료 → savedUuid 기록 (중복 저장 방지)
         semiTickets[item.idx].savedUuid = entry.uuid;
@@ -267,9 +322,9 @@ async function saveSemiTickets() {
             }
         }
 
-        var ticketEls = document.querySelectorAll('.lotto-ticket');
-        if (ticketEls[item.idx]) {
-            var header = ticketEls[item.idx].querySelector('.ticket-header');
+        var ticketEls2 = document.querySelectorAll('.lotto-ticket');
+        if (ticketEls2[item.idx]) {
+            var header = ticketEls2[item.idx].querySelector('.ticket-header');
             if (header) {
                 var badge = document.createElement('span');
                 badge.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:8px;font-weight:bold;';

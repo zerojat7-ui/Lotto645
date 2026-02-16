@@ -33,11 +33,40 @@ function getUserId() {
     return uid;
 }
 
+// ── 번호 배열 → 정렬 키 ──
+function _comboKey(numbers) {
+    return numbers.slice().sort(function(a, b) { return a - b; }).join(',');
+}
+
+// ── 기존 기록에서 중복 조합 키 Set 반환 (회차 한정) ──
+function _getExistingKeys(records, round) {
+    var set = new Set();
+    records.forEach(function(r) {
+        if (r.round === round) {
+            var nums = r.item || r.numbers || [];
+            if (nums.length === 6) set.add(_comboKey(nums));
+        }
+    });
+    return set;
+}
+
 // ── LocalStorage만 저장 (Firebase 없음) ──
+// 반환값: { entry, duplicate }
+//   entry     : 저장된 Record 객체 (중복 시 null)
+//   duplicate : true = 동일 회차에 동일 번호 이미 존재
 function saveForecastLocal(opts) {
     var records = loadForecastData();
-    
     if (!records) records = [];
+
+    var numbers  = opts.numbers || opts.item || [];
+    var comboKey = _comboKey(numbers);
+    var existKeys = _getExistingKeys(records, opts.round);
+
+    // 중복 체크 (유저 구분 없이 동일 회차 동일 번호)
+    if (existKeys.has(comboKey)) {
+        return { entry: null, duplicate: true };
+    }
+
     var sameType = normalizeType(opts.type);
     var cycle = records.filter(function(r) {
         return r.round === opts.round && normalizeType(r.type) === sameType;
@@ -47,16 +76,35 @@ function saveForecastLocal(opts) {
         uuid         : generateUUID(),
         round        : opts.round,
         type         : sameType,
-        item         : opts.numbers || opts.item || [],
+        item         : numbers,
         rank         : opts.rank || null,
         time         : new Date().toISOString(),
         cycle        : cycle,
         engineVersion: opts.engineVersion || null
     };
-    
+
     records.push(entry);
     saveForecastData(records);
-    return entry;
+    return { entry: entry, duplicate: false };
+}
+
+// ── 기록 탭 저장 번호 → 엔진 학습용 고유 조합 배열 반환 ──
+// 유저 구분 없이 중복 제거된 번호 배열만 반환
+function getRecordHistoryForEngine() {
+    var records = loadForecastData();
+    if (!records || !records.length) return [];
+    var seen = new Set();
+    var result = [];
+    records.forEach(function(r) {
+        var nums = (r.item || r.numbers || []).slice().sort(function(a, b) { return a - b; });
+        if (nums.length !== 6) return;
+        var key = nums.join(',');
+        if (!seen.has(key)) {
+            seen.add(key);
+            result.push(nums);
+        }
+    });
+    return result;
 }
 
 // ── type 숫자 → 문자열 변환 (하위 호환) ──

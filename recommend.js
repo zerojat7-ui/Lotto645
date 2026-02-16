@@ -140,6 +140,47 @@ async function saveSelectedRecs() {
         return;
     }
 
+    // ── 중복 체크: 동일 회차 동일 번호 제외 + 포인트 반환 ──
+    var existRecords = typeof loadForecastData === 'function' ? loadForecastData() : [];
+    var existKeys = typeof _getExistingKeys === 'function'
+        ? _getExistingKeys(existRecords, nextRound)
+        : new Set();
+    var dupItems = [];
+    var uniqueToSave = toSave.filter(function(item) {
+        var key = typeof _comboKey === 'function'
+            ? _comboKey(item.numbers)
+            : item.numbers.slice().sort(function(a,b){return a-b;}).join(',');
+        if (existKeys.has(key)) { dupItems.push(item); return false; }
+        return true;
+    });
+
+    if (dupItems.length > 0) {
+        var dupCount = dupItems.length;
+        var refundPt = dupCount; // 1개당 1p
+        var msg = dupCount + '개 조합이 이미 저장된 번호와 중복되어 제외되었습니다.';
+        if (typeof addPoints === 'function') {
+            await addPoints(refundPt, '중복 조합 ' + dupCount + '개 포인트 반환');
+            msg += '\n(포인트 ' + refundPt + 'p 반환)';
+        }
+        // 중복 카드 표시
+        dupItems.forEach(function(item) {
+            if (!item.cardEl) return;
+            var header = item.cardEl.querySelector('.rec-header');
+            if (header) {
+                var badge = document.createElement('span');
+                badge.style.cssText = 'font-size:12px;padding:2px 8px;border-radius:10px;margin-left:6px;font-weight:bold;background:#ff6b6b;color:white;';
+                badge.textContent = '⚠️ 중복 제외';
+                header.appendChild(badge);
+            }
+        });
+        if (uniqueToSave.length === 0) {
+            alert(msg + '\n저장할 새 조합이 없습니다.');
+            return;
+        }
+        alert(msg);
+    }
+    toSave = uniqueToSave;
+
     // 기록 저장 1개당 1p × toSave.length 선차감 (포인트 부족 시 차단)
     if (typeof usePoints === 'function') {
         var ptNeeded = toSave.length;
@@ -161,12 +202,13 @@ async function saveSelectedRecs() {
         var item = toSave[i];
         var entry;
         try {
-            entry = saveForecastLocal({
+            var saveResult = saveForecastLocal({
                 type         : item.type,
                 round        : nextRound,
                 numbers      : item.numbers,
                 engineVersion: engineVer
             });
+            entry = saveResult.entry;
         } catch(lsErr) {
             console.error('LocalStorage 저장 오류:', lsErr.message);
             break;
@@ -435,6 +477,19 @@ async function runAdvancedEngine() {
     var historyNums = lottoData.map(function(d){ return d.numbers; });
     // v2.2.0: 보너스 번호 배열 추출 (bonus 필드 없는 구형 데이터는 필터링)
     var bonusNums   = lottoData.map(function(d){ return d.bonus; }).filter(function(b){ return b && b >= 1 && b <= 45; });
+    // v9.4.0: 기록 탭 저장 번호 → 중복 제거 후 학습 데이터에 통합
+    var recordHistory = typeof getRecordHistoryForEngine === 'function' ? getRecordHistoryForEngine() : [];
+    if (recordHistory.length > 0) {
+        // 당첨 이력과 중복 제거 후 병합
+        var historySet = new Set(historyNums.map(function(a){ return a.slice().sort(function(x,y){return x-y;}).join(','); }));
+        var uniqueRecordHistory = recordHistory.filter(function(r) {
+            return !historySet.has(r.join(','));
+        });
+        if (uniqueRecordHistory.length > 0) {
+            historyNums = historyNums.concat(uniqueRecordHistory);
+            mLog('📋 기록 학습 데이터 ' + uniqueRecordHistory.length + '개 추가 (총: ' + historyNums.length + '회차)', '#b0bec5');
+        }
+    }
     var totalRounds = 50;
     var engineVer = CubeEngine.version;
 

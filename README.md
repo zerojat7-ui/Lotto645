@@ -331,7 +331,41 @@ data save 기능 수정
   - 변경: `stats.topItems` (v2.1.0에서 추가된 이번 라운드 상위 번호 배열) 우선 사용
   - 폴백: 라운드 시드 기반 가상 조합 (기존 유지)
 
-## ver 9.3.0
+## ver 9.4.0
+2026-02-16
+
+### 중복 조합 저장 방지 + 포인트 반환 (recommend.js, semiauto.js, records.js)
+
+**중복 저장 방지**
+- 추천 탭 저장(`saveSelectedRecs`) 및 반자동 탭 저장(`saveSemiTickets`) 시
+  동일 회차 동일 번호 조합이 기록 탭에 이미 존재하면 저장에서 제외
+- 유저 구분 없이 번호 조합 기준으로 중복 판단 (정렬 후 `,` join 키 비교)
+- 중복된 카드/티켓에 `⚠️ 중복 제외` 빨간 배지 표시
+
+**포인트 반환**
+- 중복으로 제외된 조합 수 × 1p 를 `addPoints()`로 즉시 반환
+- 토스트 알림: `+Np (중복 조합 N개 포인트 반환)`
+- alert로 제외 내역 + 반환 포인트 안내
+
+**records.js 헬퍼 함수 추가**
+- `_comboKey(numbers)`: 번호 배열 → 정렬된 `,` join 키
+- `_getExistingKeys(records, round)`: 특정 회차 기존 기록의 조합 키 Set 반환
+- `saveForecastLocal()` 반환값 구조 변경: `entry` → `{ entry, duplicate }`
+  - `entry`: 저장된 Record (중복 시 null)
+  - `duplicate`: true = 동일 회차 동일 번호 이미 존재
+- `getRecordHistoryForEngine()`: 기록 탭 저장 번호 → 중복 제거된 6개 번호 배열 목록 반환
+
+### 엔진 가동 시 기록 탭 학습 반영 (recommend.js, semiauto.js)
+
+**기록 데이터 학습 통합**
+- `runAdvancedEngine()` (추천 탭 고급 추천) 실행 시 `getRecordHistoryForEngine()` 호출
+- `autoFillTicket()` (반자동 자동완성) 실행 시 동일하게 적용
+- 기록 탭에 저장된 번호 조합을 당첨 이력(`history`)과 합산하여 엔진에 전달
+- 단, 당첨 이력과 중복되는 조합은 제거 후 unique 조합만 추가 (historySet O(1) 체크)
+- 모니터 로그에 `📋 기록 학습 데이터 N개 추가` 표시
+
+
+
 2026-02-16
 
 ### 실제 당첨 데이터 기반 학습 강화 — 반자동 적용 (semiauto.js)
