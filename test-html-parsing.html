@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>동행복권 HTML 파싱 상세 보기</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    h1 {
+      color: #667eea;
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 24px;
+    }
+    .section {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .section-title {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 12px;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 15px;
+      margin-bottom: 10px;
+    }
+    button:hover { background: #5568d3; }
+    button:active { transform: scale(0.98); }
+    button.secondary { background: #00C49F; }
+    button.danger { background: #ff6b6b; }
+    .status {
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+    .status.loading { background: #fff3cd; color: #856404; }
+    .status.success { background: #d4edda; color: #155724; }
+    .status.error { background: #f8d7da; color: #721c24; }
+    .code-box {
+      background: #0d1117;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 10px;
+      color: #c9d1d9;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      max-height: 500px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      position: relative;
+    }
+    .highlight {
+      background: #ffd70033;
+      color: #ffd700;
+      font-weight: bold;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 6px 12px;
+      background: #238636;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      width: auto;
+      margin: 0;
+    }
+    .copy-btn:hover { background: #2ea043; }
+    .extract-box {
+      background: white;
+      border: 2px solid #667eea;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 10px;
+    }
+    .extract-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      margin-bottom: 8px;
+      background: #f8f9fa;
+      border-radius: 6px;
+    }
+    .extract-label {
+      font-weight: bold;
+      color: #333;
+      font-size: 14px;
+    }
+    .extract-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #667eea;
+    }
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 10px;
+    }
+    .tab {
+      padding: 8px 16px;
+      background: transparent;
+      color: #666;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      transition: all 0.2s;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -12px;
+      width: auto;
+    }
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .stat-card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #667eea;
+    }
+    .info-box {
+      background: #e8f4f8;
+      border: 2px solid #bee5eb;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      font-size: 13px;
+      color: #0c5460;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 동행복권 HTML 파싱 상세 보기</h1>
+
+    <div class="info-box">
+      <strong>💡 이 페이지는?</strong><br>
+      동행복권 메인 페이지(dhlottery.co.kr)의 HTML을 그대로 가져와서<br>
+      회차 번호를 추출하는 과정을 보여줍니다.<br><br>
+      <strong>⚠️ CORS 정책</strong><br>
+      브라우저에서 직접 호출하면 CORS 에러가 발생할 수 있습니다.<br>
+      실제 서비스에서는 서버(Python, Node.js 등)에서 호출해야 합니다.
+    </div>
+
+    <!-- 메인 컨트롤 -->
+    <div class="section">
+      <button onclick="fetchHTML()">📡 동행복권 메인 페이지 HTML 가져오기</button>
+      <button class="secondary" onclick="fetchWithProxy()">🔄 CORS Proxy로 가져오기 (대안)</button>
+      <button class="danger" onclick="showMockHTML()">📋 샘플 HTML 보기 (오프라인)</button>
+      <div id="mainStatus"></div>
+    </div>
+
+    <!-- 통계 -->
+    <div class="stats-grid" id="statsGrid" style="display:none;">
+      <div class="stat-card">
+        <div class="stat-label">HTML 크기</div>
+        <div class="stat-value" id="statSize">0 KB</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">줄 수</div>
+        <div class="stat-value" id="statLines">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">추출 회차</div>
+        <div class="stat-value" id="statRound">-</div>
+      </div>
+    </div>
+
+    <!-- 탭 -->
+    <div class="tabs" id="tabsBar" style="display:none;">
+      <button class="tab active" onclick="switchTab('extracted')">📌 추출 결과</button>
+      <button class="tab" onclick="switchTab('full')">📄 전체 HTML</button>
+      <button class="tab" onclick="switchTab('target')">🎯 타겟 부분</button>
+    </div>
+
+    <!-- 추출 결과 탭 -->
+    <div id="tab-extracted" class="tab-content active">
+      <div class="section">
+        <div class="section-title">📌 추출된 데이터</div>
+        <div id="extractedData"></div>
+      </div>
+    </div>
+
+    <!-- 전체 HTML 탭 -->
+    <div id="tab-full" class="tab-content">
+      <div class="section">
+        <div class="section-title">📄 전체 HTML 소스</div>
+        <div class="code-box" id="fullHTML">
+          <button class="copy-btn" onclick="copyToClipboard('fullHTML')">📋 복사</button>
+          <span style="color:#888;">HTML을 가져오면 여기에 표시됩니다...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 타겟 부분 탭 -->
+    <div id="tab-target" class="tab-content">
+      <div class="section">
+        <div class="section-title">🎯 회차 번호가 있는 부분</div>
+        <div class="code-box" id="targetHTML">
+          <button class="copy-btn" onclick="copyToClipboard('targetHTML')">📋 복사</button>
+          <span style="color:#888;">타겟 부분만 추출해서 보여줍니다...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 파싱 방법 설명 -->
+    <div class="section">
+      <div class="section-title">💻 파싱 코드</div>
+      <div class="code-box">
+<span style="color:#f92672;">// JavaScript</span>
+<span style="color:#66d9ef;">const</span> response = <span style="color:#66d9ef;">await</span> <span style="color:#a6e22e;">fetch</span>(<span style="color:#e6db74;">'https://dhlottery.co.kr/common.do?method=main'</span>);
+<span style="color:#66d9ef;">const</span> html = <span style="color:#66d9ef;">await</span> response.<span style="color:#a6e22e;">text</span>();
+
+<span style="color:#75715e;">// 정규식으로 회차 번호 추출</span>
+<span style="color:#66d9ef;">const</span> match = html.<span style="color:#a6e22e;">match</span>(<span style="color:#e6db74;">/<strong id="lottoDrwNo">(\d+)<\/strong>/</span>);
+<span style="color:#66d9ef;">const</span> round = <span style="color:#a6e22e;">parseInt</span>(match[<span style="color:#ae81ff;">1</span>]);
+
+<span style="color:#f92672;">// Python</span>
+<span style="color:#f92672;">import</span> requests
+response = requests.<span style="color:#a6e22e;">get</span>(<span style="color:#e6db74;">"https://dhlottery.co.kr/common.do?method=main"</span>)
+html = response.<span style="color:#a6e22e;">text</span>
+
+<span style="color:#75715e;"># 문자열 분할로 추출</span>
+round = <span style="color:#66d9ef;">int</span>(html.<span style="color:#a6e22e;">split</span>(<span style="color:#e6db74;">'<strong id="lottoDrwNo">'</span>)[<span style="color:#ae81ff;">1</span>].<span style="color:#a6e22e;">split</span>(<span style="color:#e6db74;">'</strong>'</span>)[<span style="color:#ae81ff;">0</span>])
+      </div>
+    </div>
+  </div>
+
+<script>
+let cachedHTML = '';
+
+// ══ 탭 전환 ══
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  
+  event.target.classList.add('active');
+  document.getElementById('tab-' + tabName).classList.add('active');
+}
+
+// ══ 1. 직접 가져오기 (CORS 에러 예상) ══
+async function fetchHTML() {
+  const statusEl = document.getElementById('mainStatus');
+  statusEl.innerHTML = '<div class="status loading">⏳ HTML 가져오는 중... (CORS 에러 발생 가능)</div>';
+  
+  try {
+    const response = await fetch('https://dhlottery.co.kr/common.do?method=main', {
+      mode: 'cors',
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      }
+    });
+    
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    
+    const html = await response.text();
+    cachedHTML = html;
+    
+    statusEl.innerHTML = '<div class="status success">✅ HTML 가져오기 성공!</div>';
+    processHTML(html);
+    
+  } catch(error) {
+    statusEl.innerHTML = '<div class="status error">❌ CORS 에러: ' + error.message + '</div>';
+    document.getElementById('extractedData').innerHTML = `
+      <div class="extract-box">
+        <h3 style="color:#dc3545;margin-bottom:10px;">⚠️ 브라우저 CORS 정책으로 차단됨</h3>
+        <p style="font-size:13px;line-height:1.8;color:#666;">
+          동행복권 웹사이트는 외부 도메인에서의 직접 접근을 차단합니다.<br><br>
+          <strong>해결 방법:</strong><br>
+          1. 🔄 "CORS Proxy로 가져오기" 버튼 클릭<br>
+          2. 📋 "샘플 HTML 보기" 버튼으로 구조 확인<br>
+          3. ✅ 실제 서비스: 서버(Python/Node.js)에서 호출<br><br>
+          <strong>서버에서 호출 시:</strong><br>
+          → CORS 제한 없음<br>
+          → 정상적으로 HTML 파싱 가능
+        </p>
+      </div>
+    `;
+  }
+}
+
+// ══ 2. CORS Proxy로 가져오기 ══
+async function fetchWithProxy() {
+  const statusEl = document.getElementById('mainStatus');
+  statusEl.innerHTML = '<div class="status loading">⏳ CORS Proxy를 통해 가져오는 중...</div>';
+  
+  try {
+    // CORS Anywhere 같은 공개 프록시 사용 (실제 서비스에서는 자체 프록시 구축 필요)
+    const proxyUrl = 'https://api.allorigins.win/raw?url=';
+    const targetUrl = encodeURIComponent('https://dhlottery.co.kr/common.do?method=main');
+    
+    const response = await fetch(proxyUrl + targetUrl);
+    
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    
+    const html = await response.text();
+    cachedHTML = html;
+    
+    statusEl.innerHTML = '<div class="status success">✅ HTML 가져오기 성공! (Proxy 사용)</div>';
+    processHTML(html);
+    
+  } catch(error) {
+    statusEl.innerHTML = '<div class="status error">❌ Proxy 오류: ' + error.message + '</div>';
+  }
+}
+
+// ══ 3. 샘플 HTML 보기 ══
+function showMockHTML() {
+  const statusEl = document.getElementById('mainStatus');
+  statusEl.innerHTML = '<div class="status success">✅ 샘플 HTML 로드됨 (실제 구조 참고용)</div>';
+  
+  // 실제 동행복권 HTML 구조 샘플
+  const mockHTML = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>동행복권</title>
+</head>
+<body>
+    <div id="header">
+        <h1>동행복권</h1>
+    </div>
+    <div id="content">
+        <div class="lotto-info">
+            <h2>로또6/45</h2>
+            <p>당첨번호 안내</p>
+            <div class="draw-number">
+                <span>제</span>
+                <strong id="lottoDrwNo">1148</strong>
+                <span>회 당첨번호</span>
+            </div>
+            <div class="winning-numbers">
+                <span class="ball">3</span>
+                <span class="ball">12</span>
+                <span class="ball">23</span>
+                <span class="ball">31</span>
+                <span class="ball">38</span>
+                <span class="ball">42</span>
+                <span class="bonus">+ 15</span>
+            </div>
+        </div>
+        <div class="other-content">
+            <p>기타 내용...</p>
+        </div>
+    </div>
+    <div id="footer">
+        <p>Copyright © 동행복권</p>
+    </div>
+</body>
+</html>`;
+  
+  cachedHTML = mockHTML;
+  processHTML(mockHTML);
+}
+
+// ══ HTML 처리 ══
+function processHTML(html) {
+  // 통계 표시
+  document.getElementById('statsGrid').style.display = 'grid';
+  document.getElementById('tabsBar').style.display = 'flex';
+  
+  const sizeKB = (new Blob([html]).size / 1024).toFixed(2);
+  const lines = html.split('\n').length;
+  
+  document.getElementById('statSize').textContent = sizeKB + ' KB';
+  document.getElementById('statLines').textContent = lines.toLocaleString();
+  
+  // 회차 번호 추출
+  const match = html.match(/<strong id="lottoDrwNo">(\d+)<\/strong>/);
+  let roundNumber = '없음';
+  
+  if (match) {
+    roundNumber = match[1] + '회';
+    document.getElementById('statRound').textContent = roundNumber;
+  } else {
+    document.getElementById('statRound').textContent = '❌';
+  }
+  
+  // 추출 결과 표시
+  displayExtracted(html, match);
+  
+  // 전체 HTML 표시
+  displayFullHTML(html);
+  
+  // 타겟 부분 표시
+  displayTargetHTML(html, match);
+}
+
+// ══ 추출 결과 표시 ══
+function displayExtracted(html, match) {
+  const container = document.getElementById('extractedData');
+  
+  if (!match) {
+    container.innerHTML = `
+      <div class="extract-box">
+        <div class="extract-item">
+          <span class="extract-label">❌ 회차 번호를 찾을 수 없습니다</span>
+          <span class="extract-value">-</span>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#666;">
+          HTML에 <code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;">&lt;strong id="lottoDrwNo"&gt;숫자&lt;/strong&gt;</code> 형식이 없습니다.
+        </div>
+      </div>
+    `;
+    return;
+  }
+  
+  const fullMatch = match[0];
+  const roundNum = match[1];
+  
+  container.innerHTML = `
+    <div class="extract-box">
+      <div class="extract-item">
+        <span class="extract-label">🎯 발견된 패턴</span>
+        <span class="extract-value" style="font-family:monospace;font-size:14px;">${escapeHTML(fullMatch)}</span>
+      </div>
+      <div class="extract-item">
+        <span class="extract-label">📊 추출된 회차</span>
+        <span class="extract-value">${roundNum}회</span>
+      </div>
+      <div class="extract-item">
+        <span class="extract-label">💻 정규식 패턴</span>
+        <span class="extract-value" style="font-family:monospace;font-size:12px;">/<strong id="lottoDrwNo">(\d+)<\/strong>/</span>
+      </div>
+      <div style="margin-top:15px;padding:12px;background:#e8f4f8;border-radius:6px;">
+        <div style="font-weight:bold;margin-bottom:8px;color:#0c5460;">✅ 파싱 성공!</div>
+        <div style="font-size:12px;color:#0c5460;line-height:1.6;">
+          HTML에서 <code style="background:white;padding:2px 6px;border-radius:3px;">&lt;strong id="lottoDrwNo"&gt;</code> 태그를 찾아<br>
+          그 안의 숫자 <strong>${roundNum}</strong>을(를) 추출했습니다.
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ══ 전체 HTML 표시 ══
+function displayFullHTML(html) {
+  const el = document.getElementById('fullHTML');
+  
+  // 회차 번호 하이라이트
+  const highlighted = html.replace(
+    /<strong id="lottoDrwNo">(\d+)<\/strong>/g,
+    '<span class="highlight">&lt;strong id="lottoDrwNo"&gt;$1&lt;/strong&gt;</span>'
+  );
+  
+  el.innerHTML = `
+    <button class="copy-btn" onclick="copyToClipboard('fullHTML')">📋 복사</button>
+    ${escapeHTML(html)}
+  `;
+}
+
+// ══ 타겟 부분 표시 ══
+function displayTargetHTML(html, match) {
+  const el = document.getElementById('targetHTML');
+  
+  if (!match) {
+    el.innerHTML = '<span style="color:#888;">회차 번호를 찾을 수 없습니다.</span>';
+    return;
+  }
+  
+  // 타겟 앞뒤 500자씩 추출
+  const index = html.indexOf(match[0]);
+  const start = Math.max(0, index - 500);
+  const end = Math.min(html.length, index + match[0].length + 500);
+  const snippet = html.substring(start, end);
+  
+  // 하이라이트
+  const highlighted = snippet.replace(
+    match[0],
+    `<span class="highlight">${escapeHTML(match[0])}</span>`
+  );
+  
+  el.innerHTML = `
+    <button class="copy-btn" onclick="copyToClipboard('targetHTML')">📋 복사</button>
+    <div style="color:#6a737d;margin-bottom:10px;">... (앞부분 생략) ...</div>
+    ${escapeHTML(snippet.substring(0, snippet.indexOf(match[0])))}${highlighted}${escapeHTML(snippet.substring(snippet.indexOf(match[0]) + match[0].length))}
+    <div style="color:#6a737d;margin-top:10px;">... (뒷부분 생략) ...</div>
+  `;
+}
+
+// ══ HTML 이스케이프 ══
+function escapeHTML(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// ══ 클립보드 복사 ══
+function copyToClipboard(elementId) {
+  const el = document.getElementById(elementId);
+  const text = el.textContent.replace('📋 복사', '').trim();
+  
+  navigator.clipboard.writeText(text).then(() => {
+    alert('✅ 클립보드에 복사되었습니다!');
+  }).catch(err => {
+    alert('❌ 복사 실패: ' + err);
+  });
+}
+</script>
+</body>
+</html>
