@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>동행복권 API 테스트</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    h1 {
+      color: #667eea;
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 24px;
+    }
+    .test-section {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .test-title {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    input {
+      flex: 1;
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover { background: #5568d3; }
+    button:active { transform: scale(0.98); }
+    button.secondary {
+      background: #00C49F;
+    }
+    .result-box {
+      background: #0d1117;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 10px;
+      color: #00ff88;
+      font-family: monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .result-box.error {
+      color: #ff6b6b;
+    }
+    .lotto-ball {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-weight: bold;
+      font-size: 16px;
+      margin: 3px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .lotto-ball.r1 { background: linear-gradient(135deg, #FFD700, #FFA500); color: #222; }
+    .lotto-ball.r2 { background: linear-gradient(135deg, #4dabf7, #1971c2); color: white; }
+    .lotto-ball.r3 { background: linear-gradient(135deg, #ff6b6b, #c92a2a); color: white; }
+    .lotto-ball.r4 { background: linear-gradient(135deg, #495057, #212529); color: white; }
+    .lotto-ball.r5 { background: linear-gradient(135deg, #51cf66, #2f9e44); color: white; }
+    .lotto-ball.bonus { box-shadow: 0 0 0 3px #333, 0 2px 5px rgba(0,0,0,0.2); }
+    .balls-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin: 10px 0;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+    }
+    .status {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+    .status.loading { background: #fff3cd; color: #856404; }
+    .status.success { background: #d4edda; color: #155724; }
+    .status.error { background: #f8d7da; color: #721c24; }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .info-item {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .info-label {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .info-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #667eea;
+    }
+    .cors-warning {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 15px;
+      font-size: 13px;
+      color: #856404;
+    }
+    .cors-warning strong {
+      display: block;
+      margin-bottom: 5px;
+      color: #d39e00;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎰 동행복권 API 테스트</h1>
+
+    <div class="cors-warning">
+      <strong>⚠️ CORS 제한 안내</strong>
+      동행복권 API는 브라우저에서 직접 호출 시 CORS 에러가 발생할 수 있습니다.
+      실제 서비스에서는 서버 프록시를 통해 호출해야 합니다.
+    </div>
+
+    <!-- 최신 회차 조회 -->
+    <div class="test-section">
+      <div class="test-title">📡 1. 최신 회차 조회</div>
+      <button onclick="fetchLatest()">최신 당첨 번호 가져오기</button>
+      <div id="latestStatus"></div>
+      <div id="latestResult"></div>
+    </div>
+
+    <!-- 특정 회차 조회 -->
+    <div class="test-section">
+      <div class="test-title">🔍 2. 특정 회차 조회</div>
+      <div class="input-group">
+        <input type="number" id="roundInput" placeholder="회차 번호 입력 (예: 1148)" value="1148">
+        <button onclick="fetchRound()">조회</button>
+      </div>
+      <div id="roundStatus"></div>
+      <div id="roundResult"></div>
+    </div>
+
+    <!-- 연속 조회 테스트 -->
+    <div class="test-section">
+      <div class="test-title">🔄 3. 연속 조회 테스트 (Rate Limit 확인)</div>
+      <div class="input-group">
+        <input type="number" id="batchStart" placeholder="시작 회차" value="1145">
+        <input type="number" id="batchEnd" placeholder="끝 회차" value="1148">
+        <button class="secondary" onclick="fetchBatch()">일괄 조회</button>
+      </div>
+      <div id="batchStatus"></div>
+      <div id="batchResult"></div>
+    </div>
+
+    <!-- API 엔드포인트 정보 -->
+    <div class="test-section">
+      <div class="test-title">📋 API 엔드포인트</div>
+      <div style="font-size: 12px; color: #666; line-height: 1.8;">
+        <strong>최신 회차:</strong><br>
+        GET https://dhlottery.co.kr/common.do?method=main<br>
+        (HTML 파싱하여 회차 추출)<br><br>
+        
+        <strong>당첨 번호:</strong><br>
+        GET https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo={회차}<br><br>
+        
+        <strong>응답 필드:</strong><br>
+        - returnValue: "success" / "fail"<br>
+        - drwNo: 회차 번호<br>
+        - drwNoDate: 추첨 날짜<br>
+        - drwtNo1~6: 당첨 번호<br>
+        - bnusNo: 보너스 번호<br>
+        - totSellamnt: 총 판매액<br>
+        - firstWinamnt: 1등 당첨금
+      </div>
+    </div>
+  </div>
+
+<script>
+// ══ 공 범위 클래스 ══
+function ballClass(n) {
+  if (n <= 10) return 'r1';
+  if (n <= 20) return 'r2';
+  if (n <= 30) return 'r3';
+  if (n <= 40) return 'r4';
+  return 'r5';
+}
+
+// ══ 공 HTML 생성 ══
+function createBall(n, isBonus) {
+  return `<div class="lotto-ball ${ballClass(n)}${isBonus ? ' bonus' : ''}">${n}</div>`;
+}
+
+// ══ 1. 최신 회차 조회 ══
+async function fetchLatest() {
+  const statusEl = document.getElementById('latestStatus');
+  const resultEl = document.getElementById('latestResult');
+  
+  statusEl.innerHTML = '<div class="status loading">⏳ 최신 회차 조회 중...</div>';
+  resultEl.innerHTML = '';
+
+  try {
+    // STEP 1: 메인 페이지에서 최신 회차 추출
+    statusEl.innerHTML = '<div class="status loading">⏳ 메인 페이지 파싱 중...</div>';
+    const mainResp = await fetch('https://dhlottery.co.kr/common.do?method=main', {
+      mode: 'cors',
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      }
+    });
+    
+    if (!mainResp.ok) throw new Error('메인 페이지 로드 실패: ' + mainResp.status);
+    
+    const html = await mainResp.text();
+    const match = html.match(/<strong id="lottoDrwNo">(\d+)<\/strong>/);
+    
+    if (!match) throw new Error('회차 번호를 찾을 수 없습니다');
+    
+    const latestRound = parseInt(match[1]);
+    
+    // STEP 2: 당첨 번호 조회
+    statusEl.innerHTML = `<div class="status loading">⏳ ${latestRound}회차 당첨 번호 조회 중...</div>`;
+    
+    const dataResp = await fetch(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${latestRound}`, {
+      mode: 'cors'
+    });
+    
+    if (!dataResp.ok) throw new Error('당첨 번호 조회 실패: ' + dataResp.status);
+    
+    const data = await dataResp.json();
+    
+    if (data.returnValue !== 'success') {
+      throw new Error('API 응답 실패: ' + JSON.stringify(data));
+    }
+    
+    // 성공!
+    statusEl.innerHTML = '<div class="status success">✅ 조회 성공!</div>';
+    
+    const numbers = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
+    const bonus = data.bnusNo;
+    
+    resultEl.innerHTML = `
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">회차</div>
+          <div class="info-value">${data.drwNo}회</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">추첨일</div>
+          <div class="info-value">${data.drwNoDate}</div>
+        </div>
+      </div>
+      <div class="balls-container">
+        ${numbers.map(n => createBall(n, false)).join('')}
+        <div style="margin: 0 5px; font-size: 20px; color: #999;">+</div>
+        ${createBall(bonus, true)}
+      </div>
+      <div class="result-box">
+${JSON.stringify(data, null, 2)}
+      </div>
+    `;
+    
+  } catch(error) {
+    statusEl.innerHTML = '<div class="status error">❌ 오류 발생</div>';
+    resultEl.innerHTML = `<div class="result-box error">
+⚠️ CORS 에러 또는 네트워크 오류
+
+에러 메시지: ${error.message}
+
+동행복권 API는 브라우저에서 직접 호출 시 CORS 정책으로 인해
+차단될 수 있습니다.
+
+해결 방법:
+1. 서버 프록시 사용 (권장)
+2. CORS Proxy 서비스 사용
+3. 브라우저 확장 프로그램 사용 (개발 테스트용)
+4. Firebase Functions 등 서버리스 함수 사용
+
+실제 앱에서는 아래 Python 코드처럼 서버에서 호출하세요:
+
+import requests
+
+def get_lotto_winning_number(round_num=None):
+    if round_num is None:
+        # 최신 회차 조회
+        main_page = requests.get("https://dhlottery.co.kr/common.do?method=main").text
+        latest_draw = int(main_page.split('<strong id="lottoDrwNo">')[1].split('</strong>')[0])
+        round_num = latest_draw
+    
+    # 당첨 번호 조회
+    response = requests.get(f"https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo={round_num}")
+    data = response.json()
+    
+    if data["returnValue"] == "success":
+        return {
+            "draw_no": data["drwNo"],
+            "draw_date": data["drwNoDate"],
+            "numbers": [data[f"drwtNo{i}"] for i in range(1, 7)],
+            "bonus": data["bnusNo"]
+        }
+    return None
+    </div>`;
+  }
+}
+
+// ══ 2. 특정 회차 조회 ══
+async function fetchRound() {
+  const roundNum = parseInt(document.getElementById('roundInput').value);
+  const statusEl = document.getElementById('roundStatus');
+  const resultEl = document.getElementById('roundResult');
+  
+  if (!roundNum || roundNum < 1) {
+    statusEl.innerHTML = '<div class="status error">❌ 올바른 회차 번호를 입력하세요</div>';
+    return;
+  }
+  
+  statusEl.innerHTML = `<div class="status loading">⏳ ${roundNum}회차 조회 중...</div>`;
+  resultEl.innerHTML = '';
+
+  try {
+    const resp = await fetch(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${roundNum}`, {
+      mode: 'cors'
+    });
+    
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    
+    const data = await resp.json();
+    
+    if (data.returnValue !== 'success') {
+      throw new Error('해당 회차를 찾을 수 없습니다');
+    }
+    
+    statusEl.innerHTML = '<div class="status success">✅ 조회 성공!</div>';
+    
+    const numbers = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
+    const bonus = data.bnusNo;
+    
+    resultEl.innerHTML = `
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">회차</div>
+          <div class="info-value">${data.drwNo}회</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">추첨일</div>
+          <div class="info-value">${data.drwNoDate}</div>
+        </div>
+      </div>
+      <div class="balls-container">
+        ${numbers.map(n => createBall(n, false)).join('')}
+        <div style="margin: 0 5px; font-size: 20px; color: #999;">+</div>
+        ${createBall(bonus, true)}
+      </div>
+      <div class="result-box">
+${JSON.stringify(data, null, 2)}
+      </div>
+    `;
+    
+  } catch(error) {
+    statusEl.innerHTML = '<div class="status error">❌ 오류 발생</div>';
+    resultEl.innerHTML = `<div class="result-box error">${error.message}</div>`;
+  }
+}
+
+// ══ 3. 연속 조회 테스트 ══
+async function fetchBatch() {
+  const start = parseInt(document.getElementById('batchStart').value);
+  const end = parseInt(document.getElementById('batchEnd').value);
+  const statusEl = document.getElementById('batchStatus');
+  const resultEl = document.getElementById('batchResult');
+  
+  if (!start || !end || start > end) {
+    statusEl.innerHTML = '<div class="status error">❌ 올바른 범위를 입력하세요</div>';
+    return;
+  }
+  
+  const total = end - start + 1;
+  statusEl.innerHTML = `<div class="status loading">⏳ ${total}개 회차 조회 중... (0/${total})</div>`;
+  resultEl.innerHTML = '';
+  
+  const results = [];
+  const errors = [];
+  
+  for (let round = start; round <= end; round++) {
+    try {
+      const resp = await fetch(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${round}`, {
+        mode: 'cors'
+      });
+      
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      
+      const data = await resp.json();
+      
+      if (data.returnValue === 'success') {
+        results.push({
+          round: data.drwNo,
+          date: data.drwNoDate,
+          numbers: [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6],
+          bonus: data.bnusNo
+        });
+      } else {
+        errors.push(`${round}회: ${data.returnValue}`);
+      }
+      
+      const progress = results.length + errors.length;
+      statusEl.innerHTML = `<div class="status loading">⏳ ${total}개 회차 조회 중... (${progress}/${total})</div>`;
+      
+      // Rate Limiting 방지: 0.5초 대기
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+    } catch(error) {
+      errors.push(`${round}회: ${error.message}`);
+    }
+  }
+  
+  if (errors.length === 0) {
+    statusEl.innerHTML = `<div class="status success">✅ ${results.length}개 회차 조회 완료!</div>`;
+  } else {
+    statusEl.innerHTML = `<div class="status error">⚠️ ${results.length}개 성공, ${errors.length}개 실패</div>`;
+  }
+  
+  resultEl.innerHTML = `
+    <div class="result-box">
+성공: ${results.length}개
+실패: ${errors.length}개
+
+${errors.length > 0 ? '실패 회차:\n' + errors.join('\n') + '\n\n' : ''}조회 결과:
+${JSON.stringify(results, null, 2)}
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
